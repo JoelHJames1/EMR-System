@@ -1,8 +1,8 @@
-
-Description
+**
+Description**
 The IUserService interface is a part of the EMRWebAPI.Services.IServices namespace. This interface outlines the required operations for managing user data and user authentication in the Electronic Medical Record (EMR) Web API. It contains methods for creating, reading, updating, and deleting users, as well as for user registration and login.
 
-Methods
+**Methods**
 Task<IActionResult> GetUsers()
 Retrieves all users.
 
@@ -25,7 +25,7 @@ Deletes the user with the specified id.
 Description
 The Repository<T> class is a part of the EMRDataLayer.Repository namespace. This class is a generic repository implementation designed to interact with the Electronic Medical Record (EMR) database context using Entity Framework Core. It provides basic CRUD (Create, Read, Update, Delete) operations for any entity class T.
 
-Properties
+**Properties**
 protected readonly EMRDBContext _context
 The database context used by the repository. This property is set via the constructor.
 
