@@ -1,5 +1,28 @@
-**
-Description**
+
+****LoginForm Component****
+
+Module: LoginForm
+Description
+The LoginForm component is a part of the React frontend of the application. It provides an interface for a user to log in. It handles the login process by interacting with a backend API endpoint, and upon a successful login, the user is navigated to a dashboard.
+
+States
+const [email, setEmail] = useState("")
+This state stores the email input from the user.
+
+const [password, setPassword] = useState("")
+This state stores the password input from the user.
+
+const [showToast, setShowToast] = useState(false)
+This state handles the visibility of a Bootstrap Toast component, which is used to show error messages when login fails.
+
+Functions
+const handleSubmit = async (event)
+This function handles the submission of the login form. It interacts with the API endpoint https://localhost:7099/api/User/login via a POST request. If the request is successful, it stores the received token and user data in the local storage and navigates to the /dashboard. If the request results in an HTTP 401 status code, it shows a Bootstrap Toast error message. For other error conditions, it logs the error to the console.
+
+**JSX**
+The LoginForm component renders a form for the user to input their email and password, as well as a submit button to trigger the login process. It also renders a Bootstrap Toast component to show error messages when login fails.
+
+**Description**
 The IUserService interface is a part of the EMRWebAPI.Services.IServices namespace. This interface outlines the required operations for managing user data and user authentication in the Electronic Medical Record (EMR) Web API. It contains methods for creating, reading, updating, and deleting users, as well as for user registration and login.
 
 **Methods**
