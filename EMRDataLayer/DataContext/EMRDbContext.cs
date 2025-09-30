@@ -15,8 +15,21 @@ namespace EMRDataLayer.DataContext
         public DbSet<Patient> Patients { get; set; }
         public DbSet<Provider> Providers { get; set; }
 
-        // Clinical Entities
+        // HL7 FHIR Clinical Entities
+        public DbSet<Encounter> Encounters { get; set; }
+        public DbSet<Diagnosis> Diagnoses { get; set; }
+        public DbSet<Procedure> Procedures { get; set; }
+        public DbSet<Observation> Observations { get; set; }
+        public DbSet<ClinicalNote> ClinicalNotes { get; set; }
+        public DbSet<CarePlan> CarePlans { get; set; }
+        public DbSet<CarePlanActivity> CarePlanActivities { get; set; }
+        public DbSet<Referral> Referrals { get; set; }
+        public DbSet<FamilyHistory> FamilyHistories { get; set; }
+
+        // Appointment & Scheduling
         public DbSet<Appointment> Appointments { get; set; }
+
+        // Legacy Medical Records (consider migrating to Encounter/ClinicalNote)
         public DbSet<MedicalRecord> MedicalRecords { get; set; }
         public DbSet<VitalSign> VitalSigns { get; set; }
         public DbSet<Allergy> Allergies { get; set; }
@@ -34,6 +47,11 @@ namespace EMRDataLayer.DataContext
         public DbSet<Billing> Billings { get; set; }
         public DbSet<BillingItem> BillingItems { get; set; }
         public DbSet<Insurance> Insurances { get; set; }
+
+        // Administrative & Facility
+        public DbSet<Location> Locations { get; set; }
+        public DbSet<Department> Departments { get; set; }
+        public DbSet<Document> Documents { get; set; }
 
         public EMRDBContext(DbContextOptions<EMRDBContext> options)
             : base(options)
@@ -224,6 +242,199 @@ namespace EMRDataLayer.DataContext
             // Medication configurations
             modelBuilder.Entity<Medication>()
                 .HasKey(m => m.Id);
+
+            // Encounter configurations
+            modelBuilder.Entity<Encounter>()
+                .HasKey(e => e.Id);
+
+            modelBuilder.Entity<Encounter>()
+                .HasOne(e => e.Patient)
+                .WithMany()
+                .HasForeignKey(e => e.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Encounter>()
+                .HasOne(e => e.Provider)
+                .WithMany()
+                .HasForeignKey(e => e.ProviderId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Encounter>()
+                .HasOne(e => e.Location)
+                .WithMany(l => l.Encounters)
+                .HasForeignKey(e => e.LocationId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Encounter>()
+                .HasOne(e => e.Department)
+                .WithMany(d => d.Encounters)
+                .HasForeignKey(e => e.DepartmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Diagnosis configurations
+            modelBuilder.Entity<Diagnosis>()
+                .HasKey(d => d.Id);
+
+            modelBuilder.Entity<Diagnosis>()
+                .HasOne(d => d.Patient)
+                .WithMany()
+                .HasForeignKey(d => d.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Diagnosis>()
+                .HasOne(d => d.Encounter)
+                .WithMany(e => e.Diagnoses)
+                .HasForeignKey(d => d.EncounterId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Procedure configurations
+            modelBuilder.Entity<Procedure>()
+                .HasKey(p => p.Id);
+
+            modelBuilder.Entity<Procedure>()
+                .HasOne(p => p.Patient)
+                .WithMany()
+                .HasForeignKey(p => p.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Procedure>()
+                .HasOne(p => p.Encounter)
+                .WithMany(e => e.Procedures)
+                .HasForeignKey(p => p.EncounterId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Procedure>()
+                .HasOne(p => p.Location)
+                .WithMany(l => l.Procedures)
+                .HasForeignKey(p => p.LocationId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Observation configurations
+            modelBuilder.Entity<Observation>()
+                .HasKey(o => o.Id);
+
+            modelBuilder.Entity<Observation>()
+                .HasOne(o => o.Patient)
+                .WithMany()
+                .HasForeignKey(o => o.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Observation>()
+                .HasOne(o => o.Encounter)
+                .WithMany(e => e.Observations)
+                .HasForeignKey(o => o.EncounterId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ClinicalNote configurations
+            modelBuilder.Entity<ClinicalNote>()
+                .HasKey(c => c.Id);
+
+            modelBuilder.Entity<ClinicalNote>()
+                .HasOne(c => c.Patient)
+                .WithMany()
+                .HasForeignKey(c => c.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ClinicalNote>()
+                .HasOne(c => c.Encounter)
+                .WithMany()
+                .HasForeignKey(c => c.EncounterId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // CarePlan configurations
+            modelBuilder.Entity<CarePlan>()
+                .HasKey(c => c.Id);
+
+            modelBuilder.Entity<CarePlan>()
+                .HasOne(c => c.Patient)
+                .WithMany()
+                .HasForeignKey(c => c.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // CarePlanActivity configurations
+            modelBuilder.Entity<CarePlanActivity>()
+                .HasKey(c => c.Id);
+
+            modelBuilder.Entity<CarePlanActivity>()
+                .HasOne(c => c.CarePlan)
+                .WithMany(cp => cp.Activities)
+                .HasForeignKey(c => c.CarePlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Referral configurations
+            modelBuilder.Entity<Referral>()
+                .HasKey(r => r.Id);
+
+            modelBuilder.Entity<Referral>()
+                .HasOne(r => r.Patient)
+                .WithMany()
+                .HasForeignKey(r => r.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Referral>()
+                .HasOne(r => r.ReferringProvider)
+                .WithMany()
+                .HasForeignKey(r => r.ReferringProviderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Referral>()
+                .HasOne(r => r.ReferredToProvider)
+                .WithMany()
+                .HasForeignKey(r => r.ReferredToProviderId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // FamilyHistory configurations
+            modelBuilder.Entity<FamilyHistory>()
+                .HasKey(f => f.Id);
+
+            modelBuilder.Entity<FamilyHistory>()
+                .HasOne(f => f.Patient)
+                .WithMany()
+                .HasForeignKey(f => f.PatientId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Location configurations
+            modelBuilder.Entity<Location>()
+                .HasKey(l => l.Id);
+
+            modelBuilder.Entity<Location>()
+                .HasOne(l => l.Department)
+                .WithMany(d => d.Locations)
+                .HasForeignKey(l => l.DepartmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Location>()
+                .HasOne(l => l.Address)
+                .WithMany()
+                .HasForeignKey(l => l.AddressId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Department configurations
+            modelBuilder.Entity<Department>()
+                .HasKey(d => d.Id);
+
+            // Document configurations
+            modelBuilder.Entity<Document>()
+                .HasKey(d => d.Id);
+
+            modelBuilder.Entity<Document>()
+                .HasOne(d => d.Patient)
+                .WithMany()
+                .HasForeignKey(d => d.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Document>()
+                .HasOne(d => d.Encounter)
+                .WithMany()
+                .HasForeignKey(d => d.EncounterId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Appointment Location relationship
+            modelBuilder.Entity<Appointment>()
+                .HasOne(a => a.Location)
+                .WithMany(l => l.Appointments)
+                .HasForeignKey(a => a.LocationId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Seed default roles
             SeedRoles(modelBuilder);

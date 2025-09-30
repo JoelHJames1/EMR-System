@@ -50,8 +50,11 @@ namespace EMRDataLayer.Model
         [StringLength(36)]
         public string? ModifiedBy { get; set; }
 
+        public int? LocationId { get; set; }
+
         // Navigation properties
         public Patient Patient { get; set; } = null!;
         public Provider Provider { get; set; } = null!;
+        public Location? Location { get; set; }
     }
 }
