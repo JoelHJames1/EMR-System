@@ -36,7 +36,7 @@ namespace EMRDataLayer.Model
 
         public string? Goals { get; set; }
 
-        public string? Activities { get; set; }
+        public string? ActivitiesSummary { get; set; }
 
         public string? Medications { get; set; }
 

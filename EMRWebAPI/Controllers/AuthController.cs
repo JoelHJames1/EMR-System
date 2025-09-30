@@ -93,7 +93,7 @@ namespace EMRWebAPI.Controllers
         /// </summary>
         [HttpPost("login")]
         [AllowAnonymous]
-        public async Task<IActionResult> Login([FromBody] LoginDTO model)
+        public async Task<IActionResult> Login([FromBody] LoginDto model)
         {
             try
             {
