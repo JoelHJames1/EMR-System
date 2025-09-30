@@ -42,6 +42,10 @@ import PatientManagement from './Dashboard/PatientManagement';
 import AppointmentManagement from './Dashboard/AppointmentManagement';
 import PrescriptionManagement from './Dashboard/PrescriptionManagement';
 import LabOrderManagement from './Dashboard/LabOrderManagement';
+import EncounterManagement from './Dashboard/EncounterManagement';
+import BillingManagement from './Dashboard/BillingManagement';
+import VitalsManagement from './Dashboard/VitalsManagement';
+import AllergyImmunizationManagement from './Dashboard/AllergyImmunizationManagement';
 
 const drawerWidth = 280;
 
@@ -59,8 +63,9 @@ const DashboardLayout = () => {
     { id: 'encounters', label: 'Encounters', icon: <LocalHospital />, color: '#4facfe' },
     { id: 'prescriptions', label: 'Prescriptions', icon: <Medication />, color: '#43e97b' },
     { id: 'lab-orders', label: 'Lab Orders', icon: <Science />, color: '#fa709a' },
-    { id: 'billing', label: 'Billing', icon: <AttachMoney />, color: '#30cfd0' },
-    { id: 'clinical-notes', label: 'Clinical Notes', icon: <Assignment />, color: '#a8edea' },
+    { id: 'vitals', label: 'Vitals', icon: <MedicalServices />, color: '#30cfd0' },
+    { id: 'allergies', label: 'Allergies & Vaccines', icon: <Assignment />, color: '#f44336' },
+    { id: 'billing', label: 'Billing', icon: <AttachMoney />, color: '#ffc107' },
   ];
 
   const handleDrawerToggle = () => {
@@ -89,31 +94,18 @@ const DashboardLayout = () => {
         return <PatientManagement />;
       case 'appointments':
         return <AppointmentManagement />;
+      case 'encounters':
+        return <EncounterManagement />;
       case 'prescriptions':
         return <PrescriptionManagement />;
       case 'lab-orders':
         return <LabOrderManagement />;
-      case 'encounters':
-        return (
-          <Box>
-            <Typography variant="h4" fontWeight="bold">Encounter Management</Typography>
-            <Typography color="text.secondary" mt={1}>Track patient visits and clinical encounters...</Typography>
-          </Box>
-        );
+      case 'vitals':
+        return <VitalsManagement />;
+      case 'allergies':
+        return <AllergyImmunizationManagement />;
       case 'billing':
-        return (
-          <Box>
-            <Typography variant="h4" fontWeight="bold">Billing & Insurance</Typography>
-            <Typography color="text.secondary" mt={1}>Manage billing, insurance claims, and payments...</Typography>
-          </Box>
-        );
-      case 'clinical-notes':
-        return (
-          <Box>
-            <Typography variant="h4" fontWeight="bold">Clinical Notes</Typography>
-            <Typography color="text.secondary" mt={1}>Create and manage SOAP notes and clinical documentation...</Typography>
-          </Box>
-        );
+        return <BillingManagement />;
       default:
         return <EnhancedDashboard />;
     }

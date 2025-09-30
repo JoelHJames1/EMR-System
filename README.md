@@ -26,13 +26,15 @@ A **comprehensive, HL7 FHIR-compliant** Electronic Medical Records (EMR) system 
 ### Technology Stack
 
 ```
-Frontend:  React.js + Bootstrap
+Frontend:  React 18.2 + Material-UI 5 + Framer Motion
 Backend:   ASP.NET Core 8.0 Web API
-ORM:       Entity Framework Core 8.0
+ORM:       Entity Framework Core 8.0.11
 Database:  SQL Server 2019+
-Auth:      JWT Bearer Token
+Auth:      JWT Bearer Token with Refresh Token
 Logging:   NLog
 API Docs:  Swagger/OpenAPI 3.0
+Charts:    Recharts 3.2.1
+Forms:     React Hook Form 7.63.0
 ```
 
 ### Layered Architecture
@@ -186,7 +188,7 @@ dotnet run
 **API URL**: `https://localhost:7099`
 **Swagger UI**: `https://localhost:7099/swagger`
 
-### Frontend Setup (Optional)
+### Frontend Setup
 
 ```bash
 cd emrwebfrontend
@@ -195,6 +197,8 @@ npm start
 ```
 
 **Frontend URL**: `http://localhost:3000`
+
+The frontend will automatically proxy API requests to `https://localhost:7099`.
 
 ## 🔐 Authentication & Authorization
 
@@ -466,29 +470,500 @@ EMR-System/
 │   └── appsettings.Development.json
 │
 ├── 📁 emrwebfrontend/            # React Frontend
-│   ├── src/
-│   ├── public/
+│   ├── 📁 src/
+│   │   ├── 📁 components/        # React Components
+│   │   │   ├── Login.js          # Modern login with animations
+│   │   │   ├── DashboardLayout.js # Main layout with navigation
+│   │   │   ├── UserContext.js    # Auth context
+│   │   │   └── 📁 Dashboard/     # Feature modules
+│   │   │       ├── EnhancedDashboard.js       # Analytics & statistics
+│   │   │       ├── PatientManagement.js       # Patient CRUD
+│   │   │       ├── AppointmentManagement.js   # Scheduling
+│   │   │       ├── EncounterManagement.js     # Clinical visits
+│   │   │       ├── PrescriptionManagement.js  # Medications
+│   │   │       ├── LabOrderManagement.js      # Lab tests
+│   │   │       ├── VitalsManagement.js        # Vital signs
+│   │   │       ├── AllergyImmunizationManagement.js # Allergies/Vaccines
+│   │   │       └── BillingManagement.js       # Invoices/Payments
+│   │   ├── 📁 services/          # API Services
+│   │   │   └── api.js            # Axios API layer (all endpoints)
+│   │   ├── 📁 utils/             # Utilities
+│   │   │   └── printDocument.js  # Document printing
+│   │   └── App.js                # Main app with routing
+│   ├── 📁 public/
 │   └── package.json
 │
 ├── 📄 README.md                  # This file
 ├── 📄 TECHNICAL_DOCUMENTATION.md # Detailed technical docs
+├── 📄 ROLES.md                   # Healthcare roles documentation
 ├── 📄 LICENSE.txt                # MIT License
 └── 📄 .gitignore
 ```
 
+## 🎨 Frontend Components
+
+### 1. **EnhancedDashboard** - Analytics & Real-Time Statistics
+**File**: `emrwebfrontend/src/components/Dashboard/EnhancedDashboard.js`
+
+**Features**:
+- Real-time statistics cards with trend indicators (patients, appointments, prescriptions, lab orders)
+- Interactive charts: Area chart (30-day appointments), Pie chart (lab order status)
+- Financial overview with collection rate calculation
+- Provider workload leaderboard (top 5 providers)
+- Recent activity feed (48-hour window)
+
+**Backend Integration**:
+```javascript
+dashboardAPI.getStatistics()          → GET /api/Dashboard/statistics
+dashboardAPI.getAppointmentStats(30)  → GET /api/Dashboard/appointments?days=30
+dashboardAPI.getLabStats()            → GET /api/Dashboard/lab-statistics
+dashboardAPI.getBillingSummary(30)    → GET /api/Dashboard/billing-summary?days=30
+dashboardAPI.getProviderWorkload(30)  → GET /api/Dashboard/provider-workload?days=30
+dashboardAPI.getActivity(48)          → GET /api/Dashboard/recent-activity?hours=48
+```
+
+**Controllers Used**: `DashboardController.cs`
+
+---
+
+### 2. **PatientManagement** - Patient CRUD Operations
+**File**: `emrwebfrontend/src/components/Dashboard/PatientManagement.js`
+
+**Features**:
+- Patient list with search functionality
+- Create/Edit patient demographics (name, DOB, gender, contact, address, insurance)
+- View patient details with tabs (Demographics, Allergies, Immunizations)
+- Delete/deactivate patients
+- Form validation with react-hook-form
+
+**Backend Integration**:
+```javascript
+patientAPI.getAll()         → GET /api/Patient
+patientAPI.getById(id)      → GET /api/Patient/{id}
+patientAPI.create(data)     → POST /api/Patient
+patientAPI.update(id, data) → PUT /api/Patient/{id}
+patientAPI.delete(id)       → DELETE /api/Patient/{id}
+```
+
+**Controllers Used**: `PatientController.cs`
+**Entities**: `Patient`, `Allergy`, `Immunization`
+
+---
+
+### 3. **AppointmentManagement** - Scheduling System
+**File**: `emrwebfrontend/src/components/Dashboard/AppointmentManagement.js`
+
+**Features**:
+- Calendar view with appointment listing
+- Create appointments (patient, provider, date/time, type, reason)
+- Status workflow: Scheduled → Confirmed → CheckedIn → Completed/Cancelled
+- Patient and provider dropdowns
+- Appointment types: Consultation, Follow-up, Procedure, Lab Work, Imaging
+
+**Backend Integration**:
+```javascript
+appointmentAPI.getAll()           → GET /api/Appointment
+appointmentAPI.create(data)       → POST /api/Appointment
+appointmentAPI.updateStatus(id)   → PUT /api/Appointment/{id}/status
+appointmentAPI.cancel(id)         → PUT /api/Appointment/{id}/cancel
+```
+
+**Controllers Used**: `AppointmentController.cs`
+**Entities**: `Appointment`, `Patient`, `Provider`
+
+---
+
+### 4. **EncounterManagement** - Clinical Visit Tracking
+**File**: `emrwebfrontend/src/components/Dashboard/EncounterManagement.js`
+
+**Features**:
+- Patient selection sidebar
+- Create encounters (type, provider, reason for visit)
+- Encounter types: Outpatient, Inpatient, Emergency, Virtual, Home Health
+- View encounter details with tabs (Overview, Clinical Notes, Vitals)
+- Complete encounter workflow (InProgress → Finished)
+- Clinical notes display (SOAP format)
+
+**Backend Integration**:
+```javascript
+encounterAPI.getByPatient(patientId)  → GET /api/Encounter/patient/{patientId}
+encounterAPI.create(data)             → POST /api/Encounter
+encounterAPI.getById(id)              → GET /api/Encounter/{id}
+encounterAPI.complete(id)             → PUT /api/Encounter/{id}/complete
+clinicalNoteAPI.getByEncounter(id)    → GET /api/ClinicalNote/encounter/{id}
+```
+
+**Controllers Used**: `EncounterController.cs`, `ClinicalNoteController.cs`
+**Entities**: `Encounter`, `ClinicalNote`, `Patient`, `Provider`
+
+---
+
+### 5. **PrescriptionManagement** - Medication Management
+**File**: `emrwebfrontend/src/components/Dashboard/PrescriptionManagement.js`
+
+**Features**:
+- Patient selection with prescription history
+- Create prescriptions (medication, dosage, frequency, route, duration, refills)
+- Medication search/autocomplete
+- Refill management
+- Print prescription button (professional document generation)
+- Status tracking: Active, Completed, Cancelled
+
+**Backend Integration**:
+```javascript
+prescriptionAPI.getByPatient(patientId) → GET /api/Prescription/patient/{patientId}
+prescriptionAPI.create(data)            → POST /api/Prescription
+prescriptionAPI.refill(id)              → POST /api/Prescription/{id}/refill
+medicationAPI.getAll()                  → GET /api/Medication
+```
+
+**Printing**: `printPrescription(prescription, patient, provider)` generates HTML-to-PDF document
+
+**Controllers Used**: `PrescriptionController.cs`, `MedicationController.cs`
+**Entities**: `Prescription`, `Medication`, `Patient`, `Provider`
+
+---
+
+### 6. **LabOrderManagement** - Laboratory Test Management
+**File**: `emrwebfrontend/src/components/Dashboard/LabOrderManagement.js`
+
+**Features**:
+- Patient selection with lab order history
+- Create lab orders (test type, priority, specimen, instructions)
+- Common lab tests: CBC, BMP, CMP, Lipid Panel, Liver Panel, TSH, HbA1c, Urinalysis
+- Priority levels: STAT, Urgent, Routine
+- Status workflow: Ordered → In Progress → Completed
+- Enter lab results with values, units, reference ranges, flags (Normal/Abnormal)
+- LOINC code support
+
+**Backend Integration**:
+```javascript
+labOrderAPI.getByPatient(patientId) → GET /api/LabOrder/patient/{patientId}
+labOrderAPI.create(data)            → POST /api/LabOrder
+labOrderAPI.updateStatus(id, status)→ PUT /api/LabOrder/{id}/status
+labOrderAPI.addResult(orderId, data)→ POST /api/LabResult
+```
+
+**Controllers Used**: `LabOrderController.cs`, `LabResultController.cs`
+**Entities**: `LabOrder`, `LabResult`, `Patient`, `Provider`
+
+---
+
+### 7. **VitalsManagement** - Vital Signs Recording
+**File**: `emrwebfrontend/src/components/Dashboard/VitalsManagement.js`
+
+**Features**:
+- Patient selection with vitals history
+- Latest vitals display cards (Blood Pressure, Heart Rate, Temperature, O2 Saturation)
+- Record vital signs form with validation:
+  - Blood Pressure (Systolic/Diastolic in mmHg)
+  - Heart Rate (bpm)
+  - Temperature (°F)
+  - Respiratory Rate (/min)
+  - Oxygen Saturation (%)
+  - Weight (lbs)
+  - Height (inches)
+- History table with all measurements
+
+**Backend Integration**:
+```javascript
+observationAPI.getByPatient(patientId) → GET /api/Observation/patient/{patientId}
+observationAPI.create(data)            → POST /api/Observation
+```
+
+**Data Structure**: Stored as `Observation` with `components` array
+```javascript
+components: [
+  { name: 'Blood Pressure', value: '120/80', unit: 'mmHg' },
+  { name: 'Heart Rate', value: '72', unit: 'bpm' },
+  // ... more vitals
+]
+```
+
+**Controllers Used**: `ObservationController.cs`
+**Entities**: `Observation`, `Patient`
+
+---
+
+### 8. **AllergyImmunizationManagement** - Allergy & Vaccine Tracking
+**File**: `emrwebfrontend/src/components/Dashboard/AllergyImmunizationManagement.js`
+
+**Features**:
+- Tabbed interface (Allergies / Immunizations)
+- **Allergies**:
+  - Add allergies (allergen, type, severity, reaction, notes)
+  - Allergy types: Drug/Medication, Food, Environmental, Other
+  - Severity levels: Mild, Moderate, Severe, Critical
+  - Visual severity badges with color coding
+  - Deactivate allergies
+- **Immunizations**:
+  - Add vaccine records (name, CVX code, dose number, lot number, manufacturer, administered by)
+  - History display with all vaccine details
+
+**Backend Integration**:
+```javascript
+allergyAPI.getByPatient(patientId)      → GET /api/Allergy/patient/{patientId}
+allergyAPI.create(data)                 → POST /api/Allergy
+allergyAPI.deactivate(id)               → PUT /api/Allergy/{id}/deactivate
+immunizationAPI.getByPatient(patientId) → GET /api/Immunization/patient/{patientId}
+immunizationAPI.create(data)            → POST /api/Immunization
+```
+
+**Controllers Used**: `AllergyController.cs`, `ImmunizationController.cs`
+**Entities**: `Allergy`, `Immunization`, `Patient`
+
+---
+
+### 9. **BillingManagement** - Financial & Insurance Management
+**File**: `emrwebfrontend/src/components/Dashboard/BillingManagement.js`
+
+**Features**:
+- Patient selection with billing history
+- Create invoices (service description, amount, CPT/ICD codes, notes)
+- Invoice table showing:
+  - Invoice number (INV-{id})
+  - Date, Total amount, Paid amount, Balance
+  - Status (Pending, Paid, Overdue)
+- Record payments:
+  - Payment amount with balance validation
+  - Payment methods: Cash, Credit Card, Debit Card, Insurance, Check
+- Print invoice functionality
+- Automatic due date calculation (30 days)
+
+**Backend Integration**:
+```javascript
+billingAPI.getByPatient(patientId)         → GET /api/Billing/patient/{patientId}
+billingAPI.create(data)                    → POST /api/Billing
+billingAPI.recordPayment(billingId, data)  → POST /api/Billing/{id}/payment
+```
+
+**Payment Processing**:
+```javascript
+{
+  amount: parseFloat(data.amount),
+  paymentMethod: data.paymentMethod,
+  paymentDate: new Date().toISOString()
+}
+```
+
+**Controllers Used**: `BillingController.cs`, `InsuranceController.cs`
+**Entities**: `Billing`, `BillingItem`, `Insurance`, `Patient`
+
+---
+
+### 10. **Login Component** - Modern Authentication
+**File**: `emrwebfrontend/src/components/Login.js`
+
+**Features**:
+- Modern UI with Framer Motion animations
+- Password strength validator with visual progress bar
+- Real-time password strength calculation:
+  - 25% - Length ≥ 8 characters
+  - 25% - Mixed case (uppercase + lowercase)
+  - 25% - Contains digits
+  - 25% - Contains special characters
+- Form validation with react-hook-form
+- JWT token storage in localStorage
+- Auto-redirect to dashboard on successful login
+
+**Backend Integration**:
+```javascript
+authAPI.login(credentials) → POST /api/Auth/login
+```
+
+**Response**:
+```json
+{
+  "token": "jwt-token-string",
+  "refreshToken": "refresh-token-string",
+  "user": {
+    "id": "user-guid",
+    "email": "user@email.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "roles": ["Doctor"]
+  }
+}
+```
+
+**Controllers Used**: `AuthController.cs`
+
+---
+
+### 11. **API Service Layer** - Centralized API Management
+**File**: `emrwebfrontend/src/services/api.js`
+
+**Features**:
+- Axios instance with JWT token interceptor
+- All API endpoints mapped to backend controllers
+- Automatic token injection in request headers
+- 401 error handling (auto-redirect to login)
+- Response interceptor for error handling
+
+**API Modules**:
+```javascript
+authAPI              → /api/Auth/*
+patientAPI           → /api/Patient/*
+appointmentAPI       → /api/Appointment/*
+encounterAPI         → /api/Encounter/*
+prescriptionAPI      → /api/Prescription/*
+labOrderAPI          → /api/LabOrder/*
+observationAPI       → /api/Observation/*
+allergyAPI           → /api/Allergy/*
+immunizationAPI      → /api/Immunization/*
+billingAPI           → /api/Billing/*
+dashboardAPI         → /api/Dashboard/*
+providerAPI          → /api/Provider/*
+medicationAPI        → /api/Medication/*
+clinicalNoteAPI      → /api/ClinicalNote/*
+diagnosisAPI         → /api/Diagnosis/*
+procedureAPI         → /api/Procedure/*
+insuranceAPI         → /api/Insurance/*
+```
+
+**Token Management**:
+```javascript
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${JSON.parse(token)}`;
+  }
+  return config;
+});
+```
+
+---
+
+### 12. **Document Printing Utility**
+**File**: `emrwebfrontend/src/utils/printDocument.js`
+
+**Features**:
+- Professional HTML-to-PDF document generation
+- Three document types:
+
+**1. Prescription**:
+```javascript
+printPrescription(prescription, patient, provider)
+```
+- Provider information (name, NPI, DEA, contact)
+- Patient demographics
+- Prescription details (medication, dosage, frequency, route, duration, refills)
+- Signature line and date
+- Controlled substance warnings (if applicable)
+
+**2. Lab Order**:
+```javascript
+printLabOrder(labOrder, patient, provider)
+```
+- Provider information
+- Patient demographics
+- Lab test details (test type, LOINC code, priority, specimen)
+- Special instructions
+- Collection date and signature
+
+**3. Patient Summary**:
+```javascript
+printPatientSummary(patient, encounters, allergies, prescriptions)
+```
+- Patient demographics
+- Active allergies
+- Current medications
+- Recent encounters
+- Comprehensive patient overview
+
+**Styling**: Print-optimized CSS with proper page breaks, professional fonts, and medical document formatting
+
+---
+
+## 🔗 Backend-Frontend Integration Architecture
+
+### Data Flow
+
+```
+┌─────────────────┐
+│  React Frontend │
+│  (Port 3000)    │
+└────────┬────────┘
+         │
+         │ Axios HTTP Request (JWT Token)
+         │
+         ▼
+┌─────────────────┐
+│  ASP.NET Core   │
+│  Web API        │
+│  (Port 7099)    │
+└────────┬────────┘
+         │
+         │ JWT Validation → Role-Based Authorization
+         │
+         ▼
+┌─────────────────┐
+│  Controllers    │
+│  (18 endpoints) │
+└────────┬────────┘
+         │
+         │ Business Logic & Validation
+         │
+         ▼
+┌─────────────────┐
+│  Repositories   │
+│  (EF Core)      │
+└────────┬────────┘
+         │
+         │ LINQ Queries
+         │
+         ▼
+┌─────────────────┐
+│  SQL Server     │
+│  Database       │
+│  (27 tables)    │
+└─────────────────┘
+```
+
+### Authentication Flow
+
+1. **Login**: User submits credentials → `AuthController.Login()`
+2. **Token Generation**: JWT token with user claims + refresh token
+3. **Token Storage**: Frontend stores token in localStorage
+4. **Request Interceptor**: Axios adds token to all requests
+5. **Token Validation**: Backend validates JWT on each request
+6. **Authorization**: Role-based policies check permissions
+7. **Response**: Data returned or 401 Unauthorized
+
+### Component-to-Controller Mapping
+
+| Frontend Component | Backend Controller(s) | Entities Used |
+|-------------------|----------------------|---------------|
+| EnhancedDashboard | DashboardController | All entities (statistics) |
+| PatientManagement | PatientController | Patient, Allergy, Immunization |
+| AppointmentManagement | AppointmentController | Appointment, Patient, Provider |
+| EncounterManagement | EncounterController, ClinicalNoteController | Encounter, ClinicalNote, Patient, Provider |
+| PrescriptionManagement | PrescriptionController, MedicationController | Prescription, Medication, Patient, Provider |
+| LabOrderManagement | LabOrderController, LabResultController | LabOrder, LabResult, Patient, Provider |
+| VitalsManagement | ObservationController | Observation, Patient |
+| AllergyImmunizationManagement | AllergyController, ImmunizationController | Allergy, Immunization, Patient |
+| BillingManagement | BillingController, InsuranceController | Billing, BillingItem, Insurance, Patient |
+| Login | AuthController | User, AspNetRoles, AspNetUserRoles |
+
+---
+
 ## 🌟 Roadmap & Future Enhancements
 
-### Phase 1 (Current)
-- ✅ Core EMR functionality
-- ✅ HL7 FHIR compliance
-- ✅ JWT authentication
-- ✅ RESTful API
+### Phase 1 (Current - ✅ COMPLETED)
+- ✅ Core EMR functionality with 9 modules
+- ✅ HL7 FHIR compliance (27 entities)
+- ✅ JWT authentication with refresh tokens
+- ✅ RESTful API (100+ endpoints)
+- ✅ Modern React frontend with Material-UI
+- ✅ Real-time dashboard with analytics
+- ✅ Document printing (prescriptions, lab orders, patient summaries)
 
 ### Phase 2 (Planned)
 - [ ] Patient Portal (self-service)
 - [ ] Mobile applications (iOS/Android)
 - [ ] Telemedicine integration
-- [ ] E-prescribing integration
+- [ ] E-prescribing integration (SureScripts)
+- [ ] SignalR for real-time notifications
 
 ### Phase 3 (Future)
 - [ ] AI-powered diagnostic assistance
@@ -528,10 +1003,13 @@ This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.t
 ## 📊 Statistics
 
 - **Total Entities**: 27 HL7 FHIR-compliant models
-- **Lines of Code**: 15,000+ (Backend + Frontend)
-- **API Endpoints**: 50+ RESTful endpoints
-- **Security Roles**: 6 predefined roles
-- **Medical Standards**: ICD-10, CPT, NDC, LOINC, CVX, SNOMED CT
+- **Lines of Code**: 20,000+ (Backend + Frontend)
+- **API Endpoints**: 100+ RESTful endpoints
+- **Frontend Modules**: 9 complete feature modules
+- **Security Roles**: 6 predefined healthcare roles
+- **Medical Standards**: ICD-10/11, CPT, NDC, LOINC, CVX, SNOMED CT, DEA
+- **Controllers**: 18 fully-implemented API controllers
+- **Frontend Components**: 12 major components with real API integration
 
 ---
 
