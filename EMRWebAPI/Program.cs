@@ -45,11 +45,30 @@ services.AddDbContext<EMRDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
-// Add Repository Here
-services.AddScoped<IRepository<User>, UserRepository>();
-services.AddScoped<IRepository<Address>, AddressRepository>();
+// Add Repository Here - Generic Repository
+services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+// Add Specific Repositories
 services.AddScoped<IUserRepository, UserRepository>();
 services.AddScoped<IAddressRepository, AddressRepository>();
+services.AddScoped<IPatientRepository, PatientRepository>();
+services.AddScoped<IAppointmentRepository, AppointmentRepository>();
+services.AddScoped<IEncounterRepository, EncounterRepository>();
+services.AddScoped<IDiagnosisRepository, DiagnosisRepository>();
+services.AddScoped<IProcedureRepository, ProcedureRepository>();
+services.AddScoped<IPrescriptionRepository, PrescriptionRepository>();
+services.AddScoped<IMedicationRepository, MedicationRepository>();
+services.AddScoped<ILabOrderRepository, LabOrderRepository>();
+services.AddScoped<ILabResultRepository, LabResultRepository>();
+services.AddScoped<IAllergyRepository, AllergyRepository>();
+services.AddScoped<IImmunizationRepository, ImmunizationRepository>();
+services.AddScoped<IObservationRepository, ObservationRepository>();
+services.AddScoped<IClinicalNoteRepository, ClinicalNoteRepository>();
+services.AddScoped<ICarePlanRepository, CarePlanRepository>();
+services.AddScoped<IReferralRepository, ReferralRepository>();
+services.AddScoped<IProviderRepository, ProviderRepository>();
+services.AddScoped<IBillingRepository, BillingRepository>();
+services.AddScoped<IInsuranceRepository, InsuranceRepository>();
 
 // Add Services Here
 services.AddScoped<IUserService, UserService>();
