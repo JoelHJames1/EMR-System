@@ -441,29 +441,136 @@ EMR-System/
 │   │   ├── Observation.cs
 │   │   ├── ClinicalNote.cs
 │   │   ├── Prescription.cs
+│   │   ├── Medication.cs
 │   │   ├── LabOrder.cs
+│   │   ├── LabResult.cs
+│   │   ├── Allergy.cs
+│   │   ├── Immunization.cs
 │   │   ├── Billing.cs
-│   │   └── ... (18 more)
+│   │   ├── BillingItem.cs
+│   │   ├── Insurance.cs
+│   │   ├── Appointment.cs
+│   │   ├── Referral.cs
+│   │   ├── CarePlan.cs
+│   │   ├── CarePlanActivity.cs
+│   │   ├── Provider.cs
+│   │   ├── Location.cs
+│   │   ├── Department.cs
+│   │   ├── Document.cs
+│   │   ├── MedicalRecord.cs
+│   │   ├── FamilyHistory.cs
+│   │   ├── User.cs
+│   │   └── Address.cs
 │   ├── 📁 DataContext/
 │   │   └── EMRDbContext.cs       # EF Core DbContext
-│   ├── 📁 Repository/            # Repository Pattern
-│   │   ├── IRepository/
-│   │   └── Repository.cs
+│   ├── 📁 Repository/            # Repository Pattern (18 repositories)
+│   │   ├── 📁 IRepository/       # Repository Interfaces
+│   │   │   ├── IRepository.cs    # Base repository interface
+│   │   │   ├── IPatientRepository.cs
+│   │   │   ├── IAppointmentRepository.cs
+│   │   │   ├── IEncounterRepository.cs
+│   │   │   ├── IDiagnosisRepository.cs
+│   │   │   ├── IProcedureRepository.cs
+│   │   │   ├── IPrescriptionRepository.cs
+│   │   │   ├── IMedicationRepository.cs
+│   │   │   ├── ILabOrderRepository.cs
+│   │   │   ├── ILabResultRepository.cs
+│   │   │   ├── IAllergyRepository.cs
+│   │   │   ├── IImmunizationRepository.cs
+│   │   │   ├── IObservationRepository.cs
+│   │   │   ├── IClinicalNoteRepository.cs
+│   │   │   ├── ICarePlanRepository.cs
+│   │   │   ├── IReferralRepository.cs
+│   │   │   ├── IProviderRepository.cs
+│   │   │   ├── IBillingRepository.cs
+│   │   │   ├── IInsuranceRepository.cs
+│   │   │   ├── IUserRepository.cs
+│   │   │   └── IAddressRepository.cs
+│   │   ├── Repository.cs         # Base repository implementation
+│   │   ├── PatientRepository.cs
+│   │   ├── AppointmentRepository.cs
+│   │   ├── EncounterRepository.cs
+│   │   ├── DiagnosisRepository.cs
+│   │   ├── ProcedureRepository.cs
+│   │   ├── PrescriptionRepository.cs
+│   │   ├── MedicationRepository.cs
+│   │   ├── LabOrderRepository.cs
+│   │   ├── LabResultRepository.cs
+│   │   ├── AllergyRepository.cs
+│   │   ├── ImmunizationRepository.cs
+│   │   ├── ObservationRepository.cs
+│   │   ├── ClinicalNoteRepository.cs
+│   │   ├── CarePlanRepository.cs
+│   │   ├── ReferralRepository.cs
+│   │   ├── ProviderRepository.cs
+│   │   ├── BillingRepository.cs
+│   │   └── InsuranceRepository.cs
 │   └── 📁 Migrations/            # EF Migrations
 │
 ├── 📁 EMRWebAPI/                 # API Layer
-│   ├── 📁 Controllers/           # API Controllers
+│   ├── 📁 Controllers/           # API Controllers (18 controllers)
 │   │   ├── AuthController.cs
 │   │   ├── UserController.cs
-│   │   └── ...
-│   ├── 📁 Services/              # Business Logic
+│   │   ├── PatientController.cs
+│   │   ├── AppointmentController.cs
+│   │   ├── EncounterController.cs
+│   │   ├── DiagnosisController.cs
+│   │   ├── ProcedureController.cs
+│   │   ├── PrescriptionController.cs
+│   │   ├── MedicationController.cs
+│   │   ├── LabOrderController.cs
+│   │   ├── ObservationController.cs
+│   │   ├── AllergyController.cs
+│   │   ├── ImmunizationController.cs
+│   │   ├── ClinicalNoteController.cs
+│   │   ├── CarePlanController.cs
+│   │   ├── ReferralController.cs
+│   │   ├── ProviderController.cs
+│   │   ├── BillingController.cs
+│   │   └── InsuranceController.cs
+│   ├── 📁 Services/              # Business Logic (16 services)
+│   │   ├── 📁 IServices/         # Service Interfaces
+│   │   │   ├── IUserService.cs
+│   │   │   ├── IPatientService.cs
+│   │   │   ├── IAppointmentService.cs
+│   │   │   ├── IEncounterService.cs
+│   │   │   ├── IDiagnosisService.cs
+│   │   │   ├── IProcedureService.cs
+│   │   │   ├── IPrescriptionService.cs
+│   │   │   ├── IMedicationService.cs
+│   │   │   ├── ILabOrderService.cs
+│   │   │   ├── IAllergyService.cs
+│   │   │   ├── IImmunizationService.cs
+│   │   │   ├── IObservationService.cs
+│   │   │   ├── ICarePlanService.cs
+│   │   │   ├── IReferralService.cs
+│   │   │   ├── IProviderService.cs
+│   │   │   ├── IBillingService.cs
+│   │   │   └── IInsuranceService.cs
 │   │   ├── JwtService.cs
 │   │   ├── UserService.cs
-│   │   └── IServices/
+│   │   ├── PatientService.cs
+│   │   ├── AppointmentService.cs
+│   │   ├── EncounterService.cs
+│   │   ├── DiagnosisService.cs
+│   │   ├── ProcedureService.cs
+│   │   ├── PrescriptionService.cs
+│   │   ├── MedicationService.cs
+│   │   ├── LabOrderService.cs
+│   │   ├── AllergyService.cs
+│   │   ├── ImmunizationService.cs
+│   │   ├── ObservationService.cs
+│   │   ├── CarePlanService.cs
+│   │   ├── ReferralService.cs
+│   │   ├── ProviderService.cs
+│   │   ├── BillingService.cs
+│   │   └── InsuranceService.cs
 │   ├── 📁 Model/                 # DTOs
 │   │   ├── LoginDTO.cs
 │   │   ├── RegisterDto.cs
-│   │   └── ...
+│   │   ├── UserDto.cs
+│   │   ├── AddressDto.cs
+│   │   └── TokenOptions.cs
 │   ├── 📁 AutoMapper/            # Object Mapping
 │   ├── Program.cs                # Application Entry
 │   ├── appsettings.json          # Configuration
