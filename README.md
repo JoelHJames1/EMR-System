@@ -200,6 +200,8 @@ npm start
 
 ### Default Roles
 
+The system implements 6 predefined healthcare roles with granular permissions. For detailed information about each role including responsibilities, workflows, and permission matrix, see **[ROLES.md](ROLES.md)**.
+
 | Role | Permissions | Use Case |
 |------|-------------|----------|
 | **Administrator** | Full system access | System configuration, user management |
