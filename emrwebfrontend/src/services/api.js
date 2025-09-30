@@ -41,6 +41,9 @@ export const authAPI = {
   register: (data) => api.post('/Auth/register', data),
   logout: () => api.post('/Auth/logout'),
   getProfile: () => api.get('/Auth/profile'),
+  getAllUsers: () => api.get('/User'),
+  updateUser: (id, data) => api.put(`/User/${id}`, data),
+  deleteUser: (id) => api.delete(`/User/${id}`),
 };
 
 // Dashboard
@@ -78,6 +81,7 @@ export const encounterAPI = {
 export const diagnosisAPI = {
   create: (data) => api.post('/Diagnosis', data),
   getByEncounter: (encounterId) => api.get(`/Diagnosis/encounter/${encounterId}`),
+  getByPatient: (patientId) => api.get(`/Diagnosis/patient/${patientId}`),
   update: (id, data) => api.put(`/Diagnosis/${id}`, data),
   delete: (id) => api.delete(`/Diagnosis/${id}`),
 };
@@ -97,6 +101,9 @@ export const medicationAPI = {
   getAll: (page = 1, pageSize = 50, search = '') =>
     api.get(`/Medication?page=${page}&pageSize=${pageSize}&search=${search}`),
   search: (query) => api.get(`/Medication/search?query=${query}`),
+  create: (data) => api.post('/Medication', data),
+  update: (id, data) => api.put(`/Medication/${id}`, data),
+  delete: (id) => api.delete(`/Medication/${id}`),
 };
 
 // Lab Orders
@@ -132,7 +139,10 @@ export const clinicalNoteAPI = {
 export const procedureAPI = {
   create: (data) => api.post('/Procedure', data),
   getByEncounter: (encounterId) => api.get(`/Procedure/encounter/${encounterId}`),
+  getByPatient: (patientId) => api.get(`/Procedure/patient/${patientId}`),
   update: (id, data) => api.put(`/Procedure/${id}`, data),
+  delete: (id) => api.delete(`/Procedure/${id}`),
+  complete: (id) => api.post(`/Procedure/${id}/complete`),
 };
 
 // Billing
@@ -175,6 +185,7 @@ export const providerAPI = {
   getById: (id) => api.get(`/Provider/${id}`),
   create: (data) => api.post('/Provider', data),
   update: (id, data) => api.put(`/Provider/${id}`, data),
+  delete: (id) => api.delete(`/Provider/${id}`),
   getSchedule: (id, date) => api.get(`/Provider/${id}/schedule?date=${date}`),
 };
 
@@ -190,6 +201,9 @@ export const carePlanAPI = {
   create: (data) => api.post('/CarePlan', data),
   getByPatient: (patientId) => api.get(`/CarePlan/patient/${patientId}`),
   update: (id, data) => api.put(`/CarePlan/${id}`, data),
+  delete: (id) => api.delete(`/CarePlan/${id}`),
+  activate: (id) => api.post(`/CarePlan/${id}/activate`),
+  complete: (id) => api.post(`/CarePlan/${id}/complete`),
   getActivities: (id) => api.get(`/CarePlan/${id}/activities`),
 };
 
@@ -198,6 +212,9 @@ export const referralAPI = {
   create: (data) => api.post('/Referral', data),
   getByPatient: (patientId) => api.get(`/Referral/patient/${patientId}`),
   update: (id, data) => api.put(`/Referral/${id}`, data),
+  delete: (id) => api.delete(`/Referral/${id}`),
+  approve: (id) => api.post(`/Referral/${id}/approve`),
+  complete: (id) => api.post(`/Referral/${id}/complete`),
 };
 
 export default api;

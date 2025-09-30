@@ -46,6 +46,13 @@ import EncounterManagement from './Dashboard/EncounterManagement';
 import BillingManagement from './Dashboard/BillingManagement';
 import VitalsManagement from './Dashboard/VitalsManagement';
 import AllergyImmunizationManagement from './Dashboard/AllergyImmunizationManagement';
+import DiagnosisManagement from './Dashboard/DiagnosisManagement';
+import ProcedureManagement from './Dashboard/ProcedureManagement';
+import CarePlanManagement from './Dashboard/CarePlanManagement';
+import ProviderManagement from './Dashboard/ProviderManagement';
+import ReferralManagement from './Dashboard/ReferralManagement';
+import UserManagement from './Dashboard/UserManagement';
+import MedicationManagement from './Dashboard/MedicationManagement';
 
 const drawerWidth = 280;
 
@@ -61,11 +68,18 @@ const DashboardLayout = () => {
     { id: 'patients', label: 'Patients', icon: <People />, color: '#764ba2' },
     { id: 'appointments', label: 'Appointments', icon: <CalendarToday />, color: '#f093fb' },
     { id: 'encounters', label: 'Encounters', icon: <LocalHospital />, color: '#4facfe' },
+    { id: 'diagnoses', label: 'Diagnoses', icon: <Assignment />, color: '#e74c3c' },
+    { id: 'procedures', label: 'Procedures', icon: <MedicalServices />, color: '#16a085' },
     { id: 'prescriptions', label: 'Prescriptions', icon: <Medication />, color: '#43e97b' },
+    { id: 'medications', label: 'Medications', icon: <Medication />, color: '#9b59b6' },
     { id: 'lab-orders', label: 'Lab Orders', icon: <Science />, color: '#fa709a' },
     { id: 'vitals', label: 'Vitals', icon: <MedicalServices />, color: '#30cfd0' },
     { id: 'allergies', label: 'Allergies & Vaccines', icon: <Assignment />, color: '#f44336' },
+    { id: 'care-plans', label: 'Care Plans', icon: <Assignment />, color: '#3498db' },
+    { id: 'referrals', label: 'Referrals', icon: <LocalHospital />, color: '#f39c12' },
     { id: 'billing', label: 'Billing', icon: <AttachMoney />, color: '#ffc107' },
+    { id: 'providers', label: 'Providers', icon: <People />, color: '#27ae60' },
+    { id: 'users', label: 'Users', icon: <Settings />, color: '#34495e' },
   ];
 
   const handleDrawerToggle = () => {
@@ -96,16 +110,30 @@ const DashboardLayout = () => {
         return <AppointmentManagement />;
       case 'encounters':
         return <EncounterManagement />;
+      case 'diagnoses':
+        return <DiagnosisManagement />;
+      case 'procedures':
+        return <ProcedureManagement />;
       case 'prescriptions':
         return <PrescriptionManagement />;
+      case 'medications':
+        return <MedicationManagement />;
       case 'lab-orders':
         return <LabOrderManagement />;
       case 'vitals':
         return <VitalsManagement />;
       case 'allergies':
         return <AllergyImmunizationManagement />;
+      case 'care-plans':
+        return <CarePlanManagement />;
+      case 'referrals':
+        return <ReferralManagement />;
       case 'billing':
         return <BillingManagement />;
+      case 'providers':
+        return <ProviderManagement />;
+      case 'users':
+        return <UserManagement />;
       default:
         return <EnhancedDashboard />;
     }
