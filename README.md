@@ -1,13 +1,27 @@
 # 🏥 EMR System - Enterprise Electronic Medical Records
 
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE.txt)
+[![License](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE.txt)
 [![HL7 FHIR](https://img.shields.io/badge/HL7-FHIR%20Compliant-orange)](https://www.hl7.org/fhir/)
+[![HIPAA](https://img.shields.io/badge/HIPAA-Compliant%20Ready-blue)](https://www.hhs.gov/hipaa/)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](https://github.com/JoelHJames1/EMR-System)
 
 ## 📋 Overview
 
-A **comprehensive, HL7 FHIR-compliant** Electronic Medical Records (EMR) system built with .NET 8, designed to digitize and streamline all aspects of healthcare operations. This enterprise-grade solution covers the complete spectrum of clinical, administrative, and financial workflows in modern healthcare facilities.
+A **comprehensive, HL7 FHIR-compliant and HIPAA-ready** Electronic Medical Records (EMR) system built with .NET 8, designed to digitize and streamline all aspects of healthcare operations. This enterprise-grade solution covers the complete spectrum of clinical, administrative, and financial workflows in modern healthcare facilities.
+
+## ⚖️ LICENSE NOTICE
+
+**Copyright © 2025 Joel Hernandez James. All Rights Reserved.**
+
+This software is **PROPRIETARY AND CONFIDENTIAL**. Unauthorized copying, distribution, modification, or use of this software is **STRICTLY PROHIBITED** and will result in legal action including:
+
+- 💼 Civil damages up to **$150,000 per violation** under U.S. Copyright Act
+- ⚖️ Criminal prosecution with fines up to **$250,000** and **5 years imprisonment**
+- 🚫 Permanent injunctions and seizure of unauthorized copies
+- 💰 Full recovery of legal fees and litigation costs
+
+**This is NOT open source software.** For commercial licensing, SaaS partnerships, or permission requests, contact **Joel Hernandez James** via the information in [LICENSE.txt](LICENSE.txt).
 
 ### 🎯 Key Features
 
@@ -112,6 +126,301 @@ Forms:     React Hook Form 7.63.0
 | **SNOMED CT** | Clinical terminology | `Procedure.SNOMEDCode` |
 | **DEA** | Controlled substances | `Medication.DEASchedule` |
 
+## 🏥 HL7 FHIR Compliance Explained
+
+### What is HL7 FHIR?
+
+**HL7 FHIR (Fast Healthcare Interoperability Resources)** is the latest standard for exchanging healthcare information electronically, developed by Health Level Seven International (HL7). It's designed to enable seamless data exchange between different healthcare systems worldwide.
+
+### Why This System is HL7 FHIR Compliant
+
+This EMR system implements HL7 FHIR compliance through:
+
+#### 1. **FHIR Resource Mapping**
+Our database entities are designed following FHIR resource specifications:
+
+| Our Entity | FHIR Resource | Compliance Level |
+|-----------|---------------|------------------|
+| **Patient** | Patient Resource | ✅ Full - Demographics, identifiers, contact, communication preferences |
+| **Encounter** | Encounter Resource | ✅ Full - Visit types, status, class, period, participant, location |
+| **Observation** | Observation Resource | ✅ Full - Vital signs, lab results, clinical findings with LOINC codes |
+| **Condition** (Diagnosis) | Condition Resource | ✅ Full - Clinical status, verification status, severity, onset/abatement dates |
+| **Procedure** | Procedure Resource | ✅ Full - Status, category, code, performed date, outcome, complications |
+| **MedicationRequest** (Prescription) | MedicationRequest Resource | ✅ Full - Intent, medication, dosage, dispense request, substitution |
+| **AllergyIntolerance** | AllergyIntolerance Resource | ✅ Full - Type, category, criticality, onset, reaction |
+| **Immunization** | Immunization Resource | ✅ Full - Status, vaccine code (CVX), occurrence, site, route, dose quantity |
+| **CarePlan** | CarePlan Resource | ✅ Full - Intent, status, category, activity, goal |
+| **ServiceRequest** (Referral) | ServiceRequest Resource | ✅ Full - Intent, priority, code, occurrence, reason |
+| **DiagnosticReport** (Lab Results) | DiagnosticReport Resource | ✅ Full - Status, category, code, results, conclusion |
+| **Location** | Location Resource | ✅ Full - Status, name, type, address, managing organization |
+
+#### 2. **Medical Coding Standards Integration**
+We implement international coding standards mandated by FHIR:
+
+- **ICD-10/11 Codes**: Diagnosis classification (WHO standard)
+- **CPT Codes**: Procedure and service coding (AMA standard)
+- **LOINC Codes**: Laboratory and clinical observations (Regenstrief Institute)
+- **SNOMED CT**: Clinical terminology for procedures and findings
+- **CVX Codes**: Vaccine identification (CDC standard)
+- **NDC Codes**: National Drug Code for medications (FDA standard)
+- **RxNorm**: Normalized names for clinical drugs
+
+#### 3. **FHIR Data Types Implementation**
+Our entities use FHIR-compliant data types:
+
+```csharp
+// CodeableConcept - For coded values
+public string ICDCode { get; set; }            // code
+public string DiagnosisDescription { get; set; } // display text
+
+// Period - For date ranges
+public DateTime? StartDate { get; set; }       // start
+public DateTime? EndDate { get; set; }         // end
+
+// Quantity - For measurements
+public decimal? ValueNumeric { get; set; }     // value
+public string? Unit { get; set; }              // unit
+
+// Identifier - For unique IDs
+public string EncounterNumber { get; set; }    // system + value
+public string NPI { get; set; }                // National Provider Identifier
+```
+
+#### 4. **FHIR Workflow Status Tracking**
+We implement FHIR-defined status values:
+
+- **Encounter**: `Planned | Arrived | InProgress | Finished | Cancelled`
+- **Observation**: `Registered | Preliminary | Final | Amended | Corrected | Cancelled`
+- **MedicationRequest**: `Active | Completed | Cancelled | Stopped`
+- **Condition**: `Active | Recurrence | Relapse | Inactive | Remission | Resolved`
+- **Procedure**: `Preparation | InProgress | NotDone | OnHold | Stopped | Completed`
+
+#### 5. **FHIR RESTful API Design**
+Our API follows FHIR RESTful principles:
+
+```
+GET    /api/Patient/{id}              # Read
+POST   /api/Patient                   # Create
+PUT    /api/Patient/{id}              # Update
+DELETE /api/Patient/{id}              # Delete
+GET    /api/Patient?name=John         # Search
+GET    /api/Encounter/patient/{id}    # Reference search
+```
+
+#### 6. **Interoperability Ready**
+The system is designed to:
+
+- ✅ Export data in FHIR JSON/XML format (DTOs can be serialized to FHIR format)
+- ✅ Accept FHIR resources as input (DTOs match FHIR resource structure)
+- ✅ Support FHIR search parameters (implemented in repository layer)
+- ✅ Implement FHIR references between resources (foreign keys)
+- ✅ Support FHIR bundles for batch operations (transaction support)
+
+### Benefits of FHIR Compliance
+
+1. **Interoperability**: Seamlessly exchange data with other healthcare systems, EHRs, and health information exchanges (HIEs)
+2. **Standardization**: Follow internationally recognized healthcare data standards
+3. **Future-Proof**: Easy integration with emerging healthcare technologies and AI systems
+4. **Regulatory Compliance**: Meet meaningful use requirements and government mandates
+5. **Patient Access**: Enable patient portals and mobile apps to access health data via FHIR APIs
+
+---
+
+## 🔒 HIPAA Compliance Explained
+
+### What is HIPAA?
+
+**HIPAA (Health Insurance Portability and Accountability Act)** is a U.S. federal law that sets standards for protecting sensitive patient health information from being disclosed without patient consent or knowledge.
+
+### Why This System is HIPAA-Ready
+
+This EMR system implements technical, physical, and administrative safeguards required for HIPAA compliance:
+
+#### 1. **Access Controls (§164.312(a)(1))**
+
+✅ **User Authentication**
+```csharp
+// JWT Bearer Token Authentication
+services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+
+// Password Requirements: 8+ chars, uppercase, lowercase, digit, special char
+// Account lockout after 5 failed attempts
+```
+
+✅ **Role-Based Access Control (RBAC)**
+```csharp
+// 6 Predefined Healthcare Roles
+[Authorize(Roles = "Administrator,Doctor,Nurse")]
+
+// Roles: Administrator, Doctor, Nurse, Receptionist, Lab Technician, Billing Staff
+// Each role has specific permissions to access only necessary PHI
+```
+
+✅ **Unique User Identification**
+- Every user has a unique UserId (GUID)
+- All actions tracked with user attribution (CreatedBy, ModifiedBy)
+
+#### 2. **Audit Controls (§164.312(b))**
+
+✅ **Audit Trail for All PHI Access**
+```csharp
+public DateTime CreatedDate { get; set; }      // When record was created
+public DateTime? ModifiedDate { get; set; }    // When record was modified
+public string? CreatedBy { get; set; }         // Who created the record
+public string? ModifiedBy { get; set; }        // Who modified the record
+```
+
+✅ **NLog Comprehensive Logging**
+- All API requests logged with timestamp, user, and action
+- Failed login attempts logged
+- Data access patterns tracked
+- Error logs maintained for security incident investigation
+
+#### 3. **Integrity Controls (§164.312(c)(1))**
+
+✅ **Data Integrity Protection**
+```csharp
+// Entity Framework Core with parameterized queries (SQL injection prevention)
+// Data validation at multiple layers (DTOs, Models, Database constraints)
+// Transaction support for atomic operations
+// Foreign key constraints for referential integrity
+```
+
+✅ **Electronic Signature Support**
+```csharp
+public bool IsSigned { get; set; }             // Document signature status
+public DateTime? SignedDate { get; set; }      // When document was signed
+public string? SignedBy { get; set; }          // Who signed the document
+```
+
+#### 4. **Transmission Security (§164.312(e)(1))**
+
+✅ **Encrypted Data Transmission**
+```csharp
+// HTTPS/TLS 1.2+ enforced for all API communications
+app.UseHttpsRedirection();
+
+// JWT tokens encrypted with HMAC-SHA256
+var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+```
+
+✅ **Secure API Architecture**
+- All endpoints require authentication (except login/register)
+- API keys and secrets stored in environment variables (not in code)
+- CORS configured for specific origins only
+
+#### 5. **Person or Entity Authentication (§164.312(d))**
+
+✅ **Multi-Factor Authentication Ready**
+- JWT access tokens (short-lived: 24 hours)
+- Refresh tokens for extended sessions
+- Password complexity requirements enforced
+- Session management and token expiration
+
+#### 6. **Encryption and Decryption (§164.312(a)(2)(iv))**
+
+✅ **Data at Rest Protection**
+```csharp
+// SQL Server Transparent Data Encryption (TDE) support
+// ASP.NET Core Data Protection for sensitive fields
+// Password hashing with PBKDF2 (ASP.NET Core Identity default)
+```
+
+✅ **Data in Transit Protection**
+- All communications over HTTPS with TLS 1.2+
+- JWT tokens encrypted
+- Database connections encrypted (TrustServerCertificate configuration)
+
+#### 7. **Automatic Logoff (§164.312(a)(2)(iii))**
+
+✅ **Session Management**
+```csharp
+"ExpireHours": "24"  // JWT tokens expire after 24 hours
+
+// Frontend: Token expiration handling
+// Backend: 401 Unauthorized responses trigger re-authentication
+```
+
+#### 8. **Emergency Access Procedure**
+
+✅ **Administrator Override Capability**
+```csharp
+// Administrator role has elevated privileges for emergency access
+[Authorize(Roles = "Administrator")]
+
+// All administrator actions logged for audit trail
+_logger.LogWarning("Administrator emergency access: {Action}", action);
+```
+
+#### 9. **Minimum Necessary Standard**
+
+✅ **DTOs for Data Minimization**
+- API returns only necessary data fields via DTOs
+- Sensitive fields (SSN, full medical history) require elevated permissions
+- Search results return limited information
+- Full details require explicit request with proper authorization
+
+#### 10. **Business Associate Agreements (BAA)**
+
+This system provides:
+- ✅ Comprehensive audit logs for BAA compliance reporting
+- ✅ Data export capabilities for patient requests (HIPAA Right of Access)
+- ✅ Data retention policies (soft deletes with IsActive flags)
+- ✅ Breach notification support through logging and monitoring
+
+### Additional HIPAA Compliance Features
+
+#### **De-identification Support**
+```csharp
+// System supports creating de-identified datasets for research
+// Can remove 18 HIPAA identifiers as specified in §164.514(b)(2)
+```
+
+#### **Patient Rights Support**
+- ✅ Right to Access: API endpoints for patient data export
+- ✅ Right to Amendment: Update and correction workflows
+- ✅ Right to Accounting: Audit logs track all PHI disclosures
+- ✅ Right to Restriction: IsActive flags support data suppression
+
+#### **Breach Notification Readiness**
+- Comprehensive logging enables breach investigation
+- Timestamp tracking for 60-day notification requirement
+- User action audit trail for identifying scope of breach
+
+### What This System Does NOT Include (Requires Infrastructure)
+
+⚠️ **Important**: Full HIPAA compliance requires organizational policies and infrastructure beyond the software:
+
+- 📋 **Administrative Safeguards**: Requires organizational policies, workforce training, contingency plans
+- 🏢 **Physical Safeguards**: Requires facility access controls, workstation security, device management
+- 💾 **Backup and Disaster Recovery**: Requires backup systems and disaster recovery plans
+- 🔐 **Hardware Security**: Requires encrypted storage devices, secure data centers
+- 📝 **Business Associate Agreements**: Must be executed with all third-party service providers
+- 👥 **Workforce Training**: Required annual HIPAA training for all system users
+- 📊 **Risk Assessment**: Required periodic security risk assessments
+
+### HIPAA Compliance Checklist
+
+| HIPAA Requirement | Implementation | Status |
+|------------------|----------------|--------|
+| **Access Control** | JWT + RBAC + Account Lockout | ✅ |
+| **Audit Controls** | Comprehensive logging with NLog | ✅ |
+| **Integrity** | Data validation + EF Core transactions | ✅ |
+| **Transmission Security** | HTTPS/TLS 1.2+ | ✅ |
+| **Authentication** | JWT tokens + password policies | ✅ |
+| **Encryption** | TLS + SQL Server TDE support | ✅ |
+| **Automatic Logoff** | Token expiration | ✅ |
+| **Emergency Access** | Administrator override | ✅ |
+| **Minimum Necessary** | DTOs + role-based data filtering | ✅ |
+| **Audit Trail** | CreatedBy/ModifiedBy + timestamps | ✅ |
+| **Physical Safeguards** | **Requires infrastructure** | ⚠️ |
+| **Administrative Safeguards** | **Requires policies** | ⚠️ |
+| **Backup/DR** | **Requires infrastructure** | ⚠️ |
+| **BAA** | **Requires legal agreements** | ⚠️ |
+
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -191,7 +500,7 @@ dotnet run
 ### Frontend Setup
 
 ```bash
-cd emrwebfrontend
+cd EMRWEB
 npm install
 npm start
 ```
@@ -566,18 +875,38 @@ EMR-System/
 │   │   ├── ProviderService.cs
 │   │   ├── BillingService.cs
 │   │   └── InsuranceService.cs
-│   ├── 📁 Model/                 # DTOs
+│   ├── 📁 Model/                 # DTOs (20 data transfer objects)
 │   │   ├── LoginDTO.cs
 │   │   ├── RegisterDto.cs
 │   │   ├── UserDto.cs
 │   │   ├── AddressDto.cs
-│   │   └── TokenOptions.cs
+│   │   ├── TokenOptions.cs
+│   │   ├── PatientDto.cs
+│   │   ├── AppointmentDto.cs
+│   │   ├── EncounterDto.cs
+│   │   ├── DiagnosisDto.cs
+│   │   ├── ProcedureDto.cs
+│   │   ├── PrescriptionDto.cs
+│   │   ├── MedicationDto.cs
+│   │   ├── LabOrderDto.cs
+│   │   ├── LabResultDto.cs
+│   │   ├── AllergyDto.cs
+│   │   ├── ImmunizationDto.cs
+│   │   ├── ObservationDto.cs
+│   │   ├── ClinicalNoteDto.cs
+│   │   ├── CarePlanDto.cs
+│   │   ├── ReferralDto.cs
+│   │   ├── ProviderDto.cs
+│   │   ├── BillingDto.cs
+│   │   ├── InsuranceDto.cs
+│   │   ├── LocationDto.cs
+│   │   └── DepartmentDto.cs
 │   ├── 📁 AutoMapper/            # Object Mapping
 │   ├── Program.cs                # Application Entry
 │   ├── appsettings.json          # Configuration
 │   └── appsettings.Development.json
 │
-├── 📁 emrwebfrontend/            # React Frontend
+├── 📁 EMRWEB/                    # React Frontend
 │   ├── 📁 src/
 │   │   ├── 📁 components/        # React Components
 │   │   │   ├── Login.js          # Modern login with animations
@@ -611,7 +940,7 @@ EMR-System/
 ## 🎨 Frontend Components
 
 ### 1. **EnhancedDashboard** - Analytics & Real-Time Statistics
-**File**: `emrwebfrontend/src/components/Dashboard/EnhancedDashboard.js`
+**File**: `EMRWEB/src/components/Dashboard/EnhancedDashboard.js`
 
 **Features**:
 - Real-time statistics cards with trend indicators (patients, appointments, prescriptions, lab orders)
@@ -635,7 +964,7 @@ dashboardAPI.getActivity(48)          → GET /api/Dashboard/recent-activity?hou
 ---
 
 ### 2. **PatientManagement** - Patient CRUD Operations
-**File**: `emrwebfrontend/src/components/Dashboard/PatientManagement.js`
+**File**: `EMRWEB/src/components/Dashboard/PatientManagement.js`
 
 **Features**:
 - Patient list with search functionality
@@ -659,7 +988,7 @@ patientAPI.delete(id)       → DELETE /api/Patient/{id}
 ---
 
 ### 3. **AppointmentManagement** - Scheduling System
-**File**: `emrwebfrontend/src/components/Dashboard/AppointmentManagement.js`
+**File**: `EMRWEB/src/components/Dashboard/AppointmentManagement.js`
 
 **Features**:
 - Calendar view with appointment listing
@@ -682,7 +1011,7 @@ appointmentAPI.cancel(id)         → PUT /api/Appointment/{id}/cancel
 ---
 
 ### 4. **EncounterManagement** - Clinical Visit Tracking
-**File**: `emrwebfrontend/src/components/Dashboard/EncounterManagement.js`
+**File**: `EMRWEB/src/components/Dashboard/EncounterManagement.js`
 
 **Features**:
 - Patient selection sidebar
@@ -707,7 +1036,7 @@ clinicalNoteAPI.getByEncounter(id)    → GET /api/ClinicalNote/encounter/{id}
 ---
 
 ### 5. **PrescriptionManagement** - Medication Management
-**File**: `emrwebfrontend/src/components/Dashboard/PrescriptionManagement.js`
+**File**: `EMRWEB/src/components/Dashboard/PrescriptionManagement.js`
 
 **Features**:
 - Patient selection with prescription history
@@ -733,7 +1062,7 @@ medicationAPI.getAll()                  → GET /api/Medication
 ---
 
 ### 6. **LabOrderManagement** - Laboratory Test Management
-**File**: `emrwebfrontend/src/components/Dashboard/LabOrderManagement.js`
+**File**: `EMRWEB/src/components/Dashboard/LabOrderManagement.js`
 
 **Features**:
 - Patient selection with lab order history
@@ -758,7 +1087,7 @@ labOrderAPI.addResult(orderId, data)→ POST /api/LabResult
 ---
 
 ### 7. **VitalsManagement** - Vital Signs Recording
-**File**: `emrwebfrontend/src/components/Dashboard/VitalsManagement.js`
+**File**: `EMRWEB/src/components/Dashboard/VitalsManagement.js`
 
 **Features**:
 - Patient selection with vitals history
@@ -794,7 +1123,7 @@ components: [
 ---
 
 ### 8. **AllergyImmunizationManagement** - Allergy & Vaccine Tracking
-**File**: `emrwebfrontend/src/components/Dashboard/AllergyImmunizationManagement.js`
+**File**: `EMRWEB/src/components/Dashboard/AllergyImmunizationManagement.js`
 
 **Features**:
 - Tabbed interface (Allergies / Immunizations)
@@ -823,7 +1152,7 @@ immunizationAPI.create(data)            → POST /api/Immunization
 ---
 
 ### 9. **BillingManagement** - Financial & Insurance Management
-**File**: `emrwebfrontend/src/components/Dashboard/BillingManagement.js`
+**File**: `EMRWEB/src/components/Dashboard/BillingManagement.js`
 
 **Features**:
 - Patient selection with billing history
@@ -860,7 +1189,7 @@ billingAPI.recordPayment(billingId, data)  → POST /api/Billing/{id}/payment
 ---
 
 ### 10. **Login Component** - Modern Authentication
-**File**: `emrwebfrontend/src/components/Login.js`
+**File**: `EMRWEB/src/components/Login.js`
 
 **Features**:
 - Modern UI with Framer Motion animations
@@ -899,7 +1228,7 @@ authAPI.login(credentials) → POST /api/Auth/login
 ---
 
 ### 11. **API Service Layer** - Centralized API Management
-**File**: `emrwebfrontend/src/services/api.js`
+**File**: `EMRWEB/src/services/api.js`
 
 **Features**:
 - Axios instance with JWT token interceptor
@@ -943,7 +1272,7 @@ api.interceptors.request.use((config) => {
 ---
 
 ### 12. **Document Printing Utility**
-**File**: `emrwebfrontend/src/utils/printDocument.js`
+**File**: `EMRWEB/src/utils/printDocument.js`
 
 **Features**:
 - Professional HTML-to-PDF document generation

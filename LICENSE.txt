@@ -1,21 +1,77 @@
-MIT License
+PROPRIETARY LICENSE
 
-Copyright (c) 2025 Joel Hernandez James
+Copyright (c) 2025 Joel Hernandez James. All Rights Reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+NOTICE: This software and associated documentation files (the "Software") are the
+proprietary and confidential property of Joel Hernandez James. The Software is
+protected by copyright laws and international copyright treaties, as well as other
+intellectual property laws and treaties.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+LICENSE RESTRICTIONS:
+
+1. NO PERMISSION IS GRANTED to use, copy, modify, merge, publish, distribute,
+   sublicense, and/or sell copies of the Software without explicit written
+   permission from Joel Hernandez James.
+
+2. NO PERSON OR ENTITY may use this Software for commercial purposes, including
+   but not limited to Software as a Service (SaaS), without a valid commercial
+   license agreement with Joel Hernandez James.
+
+3. NO REVERSE ENGINEERING, decompilation, or disassembly of the Software is
+   permitted under any circumstances.
+
+4. NO DERIVATIVE WORKS may be created based on the Software without explicit
+   written permission from Joel Hernandez James.
+
+5. The Software may not be redistributed, sold, leased, rented, or otherwise
+   transferred to any third party without explicit written permission from
+   Joel Hernandez James.
+
+LEGAL ENFORCEMENT:
+
+Any unauthorized use, reproduction, distribution, or modification of this Software
+constitutes a violation of intellectual property rights and will result in:
+
+- Immediate legal action seeking injunctive relief
+- Pursuit of maximum statutory damages under applicable copyright law
+- Claims for actual damages including lost profits and business opportunities
+- Recovery of all attorney fees and litigation costs
+- Criminal prosecution where applicable under intellectual property theft statutes
+- Enforcement of this agreement under the laws of the jurisdiction where
+  Joel Hernandez James resides
+
+VIOLATIONS:
+
+Unauthorized use, copying, distribution, or modification of this Software will be
+prosecuted to the fullest extent of the law. Violators will be subject to:
+
+- Civil liability including monetary damages up to $150,000 per violation under
+  17 U.S.C. § 504 (U.S. Copyright Act)
+- Criminal penalties including fines up to $250,000 and imprisonment up to 5 years
+  under 18 U.S.C. § 2319 (Criminal Infringement of a Copyright)
+- Permanent injunctions prohibiting further use or distribution
+- Seizure and destruction of all unauthorized copies
+- Liability for all court costs, legal fees, and investigative expenses
+
+LICENSING INQUIRIES:
+
+For commercial licensing, partnership opportunities, or permission requests,
+please contact:
+
+Joel Hernandez James
+Email: joel.hernandez.business@email.com
+GitHub: https://github.com/JoelHJames1
+
+DISCLAIMER:
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL JOEL HERNANDEZ
+JAMES BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+This license is effective as of January 1, 2025.
+
+Joel Hernandez James reserves the right to modify these terms at any time without
+prior notice.
