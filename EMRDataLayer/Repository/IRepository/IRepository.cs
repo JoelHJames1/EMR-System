@@ -10,7 +10,9 @@ namespace EMRDataLayer.Repository.IRepository
     {
         Task<T> GetByIdAsync(int id);
         Task<IEnumerable<T>> GetAllAsync();
-        Task AddAsync(T entity);
+        Task<T> AddAsync(T entity);
+        Task<T> UpdateAsync(T entity);
+        Task DeleteAsync(T entity);
         void Update(T entity);
         void Delete(T entity);
     } 

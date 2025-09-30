@@ -89,7 +89,6 @@ namespace EMRWebAPI.Services
             {
                 provider.IsActive = true;
                 provider.CreatedDate = DateTime.UtcNow;
-                provider.CreatedBy = userId;
 
                 return await _providerRepository.AddAsync(provider);
             }
@@ -112,7 +111,6 @@ namespace EMRWebAPI.Services
 
                 provider.Id = id;
                 provider.ModifiedDate = DateTime.UtcNow;
-                provider.ModifiedBy = userId;
 
                 return await _providerRepository.UpdateAsync(provider);
             }

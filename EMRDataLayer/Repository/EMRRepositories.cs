@@ -26,7 +26,7 @@ namespace EMRDataLayer.Repository
             return await _context.Patients
                 .Where(p => p.FirstName.Contains(searchTerm) ||
                            p.LastName.Contains(searchTerm) ||
-                           p.MRN.Contains(searchTerm))
+                           p.Email.Contains(searchTerm))
                 .ToListAsync();
         }
 
@@ -39,7 +39,7 @@ namespace EMRDataLayer.Repository
 
         public async Task<bool> PatientExists(string mrn)
         {
-            return await _context.Patients.AnyAsync(p => p.MRN == mrn);
+            return await _context.Patients.AnyAsync(p => p.Email == mrn);
         }
     }
 
@@ -91,7 +91,6 @@ namespace EMRDataLayer.Repository
             return await _context.Encounters
                 .Include(e => e.Diagnoses)
                 .Include(e => e.Procedures)
-                .Include(e => e.ClinicalNotes)
                 .FirstOrDefaultAsync(e => e.Id == id);
         }
 
@@ -126,7 +125,7 @@ namespace EMRDataLayer.Repository
         public async Task<IEnumerable<Diagnosis>> GetActiveDiagnosesAsync(int patientId)
         {
             return await _context.Diagnoses
-                .Where(d => d.PatientId == patientId && d.IsActive)
+                .Where(d => d.PatientId == patientId && d.ClinicalStatus == "Active")
                 .ToListAsync();
         }
     }
@@ -140,7 +139,7 @@ namespace EMRDataLayer.Repository
         {
             return await _context.Procedures
                 .Where(p => p.PatientId == patientId)
-                .OrderByDescending(p => p.ProcedureDate)
+                .OrderByDescending(p => p.PerformedDate ?? p.ScheduledDate)
                 .ToListAsync();
         }
 
@@ -154,8 +153,8 @@ namespace EMRDataLayer.Repository
         public async Task<IEnumerable<Procedure>> GetScheduledProceduresAsync()
         {
             return await _context.Procedures
-                .Where(p => p.Status == "Scheduled" && p.ProcedureDate >= DateTime.Now)
-                .OrderBy(p => p.ProcedureDate)
+                .Where(p => p.Status == "Scheduled" && p.ScheduledDate >= DateTime.Now)
+                .OrderBy(p => p.ScheduledDate)
                 .ToListAsync();
         }
     }
@@ -170,7 +169,7 @@ namespace EMRDataLayer.Repository
             return await _context.Prescriptions
                 .Include(p => p.Medication)
                 .Where(p => p.PatientId == patientId)
-                .OrderByDescending(p => p.PrescriptionDate)
+                .OrderByDescending(p => p.StartDate)
                 .ToListAsync();
         }
 
@@ -228,7 +227,7 @@ namespace EMRDataLayer.Repository
         {
             return await _context.LabOrders
                 .Where(l => l.PatientId == patientId)
-                .OrderByDescending(l => l.OrderDate)
+                .OrderByDescending(l => l.OrderedDate)
                 .ToListAsync();
         }
 
@@ -243,7 +242,7 @@ namespace EMRDataLayer.Repository
         {
             return await _context.LabOrders
                 .Where(l => l.Status == "Ordered")
-                .OrderBy(l => l.OrderDate)
+                .OrderBy(l => l.OrderedDate)
                 .ToListAsync();
         }
     }
@@ -265,7 +264,7 @@ namespace EMRDataLayer.Repository
             return await _context.LabResults
                 .Include(r => r.LabOrder)
                 .Where(r => r.LabOrder.PatientId == patientId)
-                .OrderByDescending(r => r.LabOrder.OrderDate)
+                .OrderByDescending(r => r.LabOrder.OrderedDate)
                 .ToListAsync();
         }
     }
@@ -279,7 +278,7 @@ namespace EMRDataLayer.Repository
         {
             return await _context.Allergies
                 .Where(a => a.PatientId == patientId)
-                .OrderByDescending(a => a.IdentifiedDate)
+                .OrderByDescending(a => a.OnsetDate)
                 .ToListAsync();
         }
 
@@ -322,7 +321,7 @@ namespace EMRDataLayer.Repository
         {
             return await _context.Observations
                 .Where(o => o.PatientId == patientId)
-                .OrderByDescending(o => o.ObservationDate)
+                .OrderByDescending(o => o.ObservationDateTime)
                 .ToListAsync();
         }
 
@@ -330,7 +329,7 @@ namespace EMRDataLayer.Repository
         {
             return await _context.Observations
                 .Where(o => o.EncounterId == encounterId)
-                .OrderByDescending(o => o.ObservationDate)
+                .OrderByDescending(o => o.ObservationDateTime)
                 .ToListAsync();
         }
 
@@ -338,7 +337,7 @@ namespace EMRDataLayer.Repository
         {
             return await _context.Observations
                 .Where(o => o.PatientId == patientId && o.ObservationType == "Vital Signs")
-                .OrderByDescending(o => o.ObservationDate)
+                .OrderByDescending(o => o.ObservationDateTime)
                 .FirstOrDefaultAsync();
         }
     }
@@ -447,7 +446,7 @@ namespace EMRDataLayer.Repository
         public async Task<Provider> GetByNPIAsync(string npiNumber)
         {
             return await _context.Providers
-                .FirstOrDefaultAsync(p => p.NPINumber == npiNumber);
+                .FirstOrDefaultAsync(p => p.NPI == npiNumber);
         }
 
         public async Task<IEnumerable<Provider>> GetActiveProvidersAsync()

@@ -61,7 +61,10 @@ namespace EMRWebAPI.Services
         {
             try
             {
-                immunization.AdministeredDate = immunization.AdministeredDate ?? DateTime.UtcNow;
+                if (immunization.AdministeredDate == default(DateTime))
+                {
+                    immunization.AdministeredDate = DateTime.UtcNow;
+                }
                 immunization.CreatedDate = DateTime.UtcNow;
                 immunization.CreatedBy = userId;
 

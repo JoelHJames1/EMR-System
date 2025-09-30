@@ -137,11 +137,6 @@ namespace EMRWebAPI.Services
                 appointment.ModifiedDate = DateTime.UtcNow;
                 appointment.ModifiedBy = userId;
 
-                if (status == "Checked In")
-                {
-                    appointment.CheckInTime = DateTime.UtcNow;
-                }
-
                 await _appointmentRepository.UpdateAsync(appointment);
                 return true;
             }

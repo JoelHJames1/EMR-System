@@ -74,7 +74,10 @@ namespace EMRWebAPI.Services
         {
             try
             {
-                observation.ObservationDate = observation.ObservationDate ?? DateTime.UtcNow;
+                if (observation.ObservationDateTime == default(DateTime))
+                {
+                    observation.ObservationDateTime = DateTime.UtcNow;
+                }
                 observation.CreatedDate = DateTime.UtcNow;
                 observation.CreatedBy = userId;
 

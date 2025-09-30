@@ -64,7 +64,7 @@ namespace EMRWebAPI.Services
                 diagnosis.CreatedDate = DateTime.UtcNow;
                 diagnosis.CreatedBy = userId;
                 diagnosis.DiagnosisDate = DateTime.UtcNow;
-                diagnosis.IsActive = true;
+                diagnosis.ClinicalStatus = "Active";
 
                 return await _diagnosisRepository.AddAsync(diagnosis);
             }

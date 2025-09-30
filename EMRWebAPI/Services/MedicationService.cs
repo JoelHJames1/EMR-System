@@ -89,7 +89,6 @@ namespace EMRWebAPI.Services
             {
                 medication.IsActive = true;
                 medication.CreatedDate = DateTime.UtcNow;
-                medication.CreatedBy = userId;
 
                 return await _medicationRepository.AddAsync(medication);
             }
@@ -112,7 +111,6 @@ namespace EMRWebAPI.Services
 
                 medication.Id = id;
                 medication.ModifiedDate = DateTime.UtcNow;
-                medication.ModifiedBy = userId;
 
                 return await _medicationRepository.UpdateAsync(medication);
             }

@@ -62,7 +62,7 @@ namespace EMRWebAPI.Services
             try
             {
                 prescription.Status = "Active";
-                prescription.PrescribedDate = DateTime.UtcNow;
+                prescription.StartDate = DateTime.UtcNow;
                 prescription.CreatedDate = DateTime.UtcNow;
                 prescription.CreatedBy = userId;
 
@@ -108,9 +108,9 @@ namespace EMRWebAPI.Services
                     return false;
                 }
 
-                if (prescription.RefillsRemaining > 0)
+                if (prescription.Refills > 0)
                 {
-                    prescription.RefillsRemaining--;
+                    prescription.Refills--;
                     prescription.ModifiedDate = DateTime.UtcNow;
                     prescription.ModifiedBy = userId;
 

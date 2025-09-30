@@ -75,7 +75,7 @@ namespace EMRWebAPI.Services
             try
             {
                 encounter.Status = "In Progress";
-                encounter.StartTime = DateTime.UtcNow;
+                encounter.StartDate = DateTime.UtcNow;
                 encounter.CreatedDate = DateTime.UtcNow;
                 encounter.CreatedBy = userId;
 
@@ -127,7 +127,7 @@ namespace EMRWebAPI.Services
 
                 if (status == "Completed")
                 {
-                    encounter.EndTime = DateTime.UtcNow;
+                    encounter.EndDate = DateTime.UtcNow;
                 }
 
                 await _encounterRepository.UpdateAsync(encounter);

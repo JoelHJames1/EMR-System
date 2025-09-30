@@ -134,18 +134,19 @@ namespace EMRWebAPI.Services
                     return false;
                 }
 
-                billing.AmountPaid += amount;
+                billing.PaidAmount += amount;
+                billing.BalanceAmount = billing.TotalAmount - billing.PaidAmount;
                 billing.ModifiedDate = DateTime.UtcNow;
                 billing.ModifiedBy = userId;
 
-                if (billing.AmountPaid >= billing.TotalAmount)
+                if (billing.PaidAmount >= billing.TotalAmount)
                 {
                     billing.Status = "Paid";
                     billing.PaymentDate = DateTime.UtcNow;
                 }
                 else
                 {
-                    billing.Status = "Partially Paid";
+                    billing.Status = "Partial";
                 }
 
                 await _billingRepository.UpdateAsync(billing);

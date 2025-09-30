@@ -80,8 +80,7 @@ namespace EMRWebAPI.Services
             try
             {
                 labOrder.Status = "Ordered";
-                labOrder.OrderDate = DateTime.UtcNow;
-                labOrder.CreatedDate = DateTime.UtcNow;
+                labOrder.OrderedDate = DateTime.UtcNow;
                 labOrder.CreatedBy = userId;
 
                 return await _labOrderRepository.AddAsync(labOrder);
@@ -109,11 +108,11 @@ namespace EMRWebAPI.Services
 
                 if (status == "Collected")
                 {
-                    labOrder.CollectionDate = DateTime.UtcNow;
+                    labOrder.CollectedDate = DateTime.UtcNow;
                 }
                 else if (status == "Completed")
                 {
-                    labOrder.CompletionDate = DateTime.UtcNow;
+                    labOrder.CompletedDate = DateTime.UtcNow;
                 }
 
                 await _labOrderRepository.UpdateAsync(labOrder);
@@ -139,13 +138,12 @@ namespace EMRWebAPI.Services
                 labResult.LabOrderId = labOrderId;
                 labResult.ResultDate = DateTime.UtcNow;
                 labResult.CreatedDate = DateTime.UtcNow;
-                labResult.CreatedBy = userId;
 
                 var result = await _labResultRepository.AddAsync(labResult);
 
                 // Update lab order status
                 labOrder.Status = "Completed";
-                labOrder.CompletionDate = DateTime.UtcNow;
+                labOrder.CompletedDate = DateTime.UtcNow;
                 await _labOrderRepository.UpdateAsync(labOrder);
 
                 return result;
