@@ -508,26 +508,27 @@ EMR-System/
 │   └── 📁 Migrations/            # EF Migrations
 │
 ├── 📁 EMRWebAPI/                 # API Layer
-│   ├── 📁 Controllers/           # API Controllers (18 controllers)
-│   │   ├── AuthController.cs
-│   │   ├── UserController.cs
-│   │   ├── PatientController.cs
-│   │   ├── AppointmentController.cs
-│   │   ├── EncounterController.cs
-│   │   ├── DiagnosisController.cs
-│   │   ├── ProcedureController.cs
-│   │   ├── PrescriptionController.cs
-│   │   ├── MedicationController.cs
-│   │   ├── LabOrderController.cs
-│   │   ├── ObservationController.cs
-│   │   ├── AllergyController.cs
-│   │   ├── ImmunizationController.cs
-│   │   ├── ClinicalNoteController.cs
-│   │   ├── CarePlanController.cs
-│   │   ├── ReferralController.cs
-│   │   ├── ProviderController.cs
-│   │   ├── BillingController.cs
-│   │   └── InsuranceController.cs
+│   ├── 📁 Controllers/           # API Controllers (19 controllers)
+│   │   ├── AuthController.cs     # Authentication & authorization
+│   │   ├── UserController.cs     # User management
+│   │   ├── PatientController.cs  # Patient registration & demographics
+│   │   ├── AppointmentController.cs # Appointment scheduling
+│   │   ├── EncounterController.cs   # Clinical visits & encounters
+│   │   ├── DiagnosisController.cs   # Diagnosis management
+│   │   ├── ProcedureController.cs   # Medical procedures
+│   │   ├── PrescriptionController.cs # Prescription management
+│   │   ├── MedicationController.cs  # Medication database
+│   │   ├── LabOrderController.cs    # Laboratory orders
+│   │   ├── LabResultController.cs   # Lab results entry
+│   │   ├── ObservationController.cs # Vital signs & observations
+│   │   ├── AllergyController.cs     # Allergy tracking
+│   │   ├── ImmunizationController.cs # Vaccine records
+│   │   ├── ClinicalNoteController.cs # SOAP notes
+│   │   ├── CarePlanController.cs    # Care plan management
+│   │   ├── ReferralController.cs    # Patient referrals
+│   │   ├── ProviderController.cs    # Provider management
+│   │   ├── BillingController.cs     # Billing & invoices
+│   │   └── InsuranceController.cs   # Insurance management
 │   ├── 📁 Services/              # Business Logic (16 services)
 │   │   ├── 📁 IServices/         # Service Interfaces
 │   │   │   ├── IUserService.cs
