@@ -37,9 +37,11 @@ import {
   Assignment,
 } from '@mui/icons-material';
 import UserContext from './UserContext';
-import DashboardHome from './Dashboard/DashboardHome';
+import EnhancedDashboard from './Dashboard/EnhancedDashboard';
 import PatientManagement from './Dashboard/PatientManagement';
 import AppointmentManagement from './Dashboard/AppointmentManagement';
+import PrescriptionManagement from './Dashboard/PrescriptionManagement';
+import LabOrderManagement from './Dashboard/LabOrderManagement';
 
 const drawerWidth = 280;
 
@@ -82,48 +84,38 @@ const DashboardLayout = () => {
   const renderPageContent = () => {
     switch (selectedPage) {
       case 'dashboard':
-        return <DashboardHome />;
+        return <EnhancedDashboard />;
       case 'patients':
         return <PatientManagement />;
       case 'appointments':
         return <AppointmentManagement />;
+      case 'prescriptions':
+        return <PrescriptionManagement />;
+      case 'lab-orders':
+        return <LabOrderManagement />;
       case 'encounters':
         return (
           <Box>
             <Typography variant="h4" fontWeight="bold">Encounter Management</Typography>
-            <Typography color="text.secondary" mt={1}>Coming soon...</Typography>
-          </Box>
-        );
-      case 'prescriptions':
-        return (
-          <Box>
-            <Typography variant="h4" fontWeight="bold">Prescription Management</Typography>
-            <Typography color="text.secondary" mt={1}>Coming soon...</Typography>
-          </Box>
-        );
-      case 'lab-orders':
-        return (
-          <Box>
-            <Typography variant="h4" fontWeight="bold">Lab Orders</Typography>
-            <Typography color="text.secondary" mt={1}>Coming soon...</Typography>
+            <Typography color="text.secondary" mt={1}>Track patient visits and clinical encounters...</Typography>
           </Box>
         );
       case 'billing':
         return (
           <Box>
             <Typography variant="h4" fontWeight="bold">Billing & Insurance</Typography>
-            <Typography color="text.secondary" mt={1}>Coming soon...</Typography>
+            <Typography color="text.secondary" mt={1}>Manage billing, insurance claims, and payments...</Typography>
           </Box>
         );
       case 'clinical-notes':
         return (
           <Box>
             <Typography variant="h4" fontWeight="bold">Clinical Notes</Typography>
-            <Typography color="text.secondary" mt={1}>Coming soon...</Typography>
+            <Typography color="text.secondary" mt={1}>Create and manage SOAP notes and clinical documentation...</Typography>
           </Box>
         );
       default:
-        return <DashboardHome />;
+        return <EnhancedDashboard />;
     }
   };
 
