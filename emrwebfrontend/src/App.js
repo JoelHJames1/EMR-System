@@ -1,30 +1,81 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import LoginForm from './components/LoginForm';
-import RegisterForm from './components/RegisterForm';
-import Dashboard from './components/Dashboard';
-import UserContext from './components/UserContext';  // Update the import statement
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import Login from './components/Login';
+import DashboardLayout from './components/DashboardLayout';
+
+// Create custom theme
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#667eea',
+    },
+    secondary: {
+      main: '#764ba2',
+    },
+    background: {
+      default: '#f8f9fa',
+    },
+  },
+  typography: {
+    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    h4: {
+      fontWeight: 700,
+    },
+    h5: {
+      fontWeight: 600,
+    },
+    h6: {
+      fontWeight: 600,
+    },
+  },
+  shape: {
+    borderRadius: 12,
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: 8,
+        },
+      },
+    },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          borderRadius: 12,
+        },
+      },
+    },
+  },
+});
 
 const App = () => {
-    const isAuthenticated = !!localStorage.getItem("token");
-    // Get user from localStorage
-    let user = localStorage.getItem('user');
+  const isAuthenticated = !!localStorage.getItem('token');
 
-    // Parse only if 'user' is a valid JSON string
-    user = (user && user !== "undefined") ? JSON.parse(user) : {};
-
-    return (
-        <UserContext.Provider value={user}>
-            <Router>
-                <Routes>
-                    <Route path="/" element={<Navigate to="/login" replace />} />
-                    <Route path="/login" element={<LoginForm />} />
-                    <Route path="/register" element={<RegisterForm />} />
-                    <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" replace />} />
-                </Routes>
-            </Router>
-        </UserContext.Provider>
-    );
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+            }
+          />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/dashboard/*"
+            element={isAuthenticated ? <DashboardLayout /> : <Navigate to="/login" replace />}
+          />
+        </Routes>
+      </Router>
+    </ThemeProvider>
+  );
 };
 
 export default App;
