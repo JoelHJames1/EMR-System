@@ -1,22 +1,45 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 
 namespace EMRDataLayer.Model
 {
     public class User : IdentityUser
     {
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
+        [Required]
+        [StringLength(50)]
+        public string FirstName { get; set; } = string.Empty;
 
-        public string Password { get; set; }
+        [Required]
+        [StringLength(50)]
+        public string LastName { get; set; } = string.Empty;
 
-        // Navigation property for one-to-one relationship with Address
-        public Address Address { get; set; }
+        [StringLength(50)]
+        public string? MiddleName { get; set; }
 
+        public DateTime? DateOfBirth { get; set; }
+
+        [StringLength(10)]
+        public string? Gender { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
+
+        public DateTime? ModifiedDate { get; set; }
+
+        public DateTime? LastLoginDate { get; set; }
+
+        [StringLength(100)]
+        public string? Department { get; set; }
+
+        [StringLength(100)]
+        public string? JobTitle { get; set; }
+
+        // Navigation properties
+        public int? AddressId { get; set; }
+        public Address? Address { get; set; }
+
+        public Provider? Provider { get; set; }
     }
 }
