@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class ImmunizationController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IImmunizationService _immunizationService;
         private readonly ILogger<ImmunizationController> _logger;
 
-        public ImmunizationController(EMRDBContext context, ILogger<ImmunizationController> logger)
+        public ImmunizationController(IImmunizationService immunizationService, ILogger<ImmunizationController> logger)
         {
-            _context = context;
+            _immunizationService = immunizationService;
             _logger = logger;
         }
 
@@ -29,11 +28,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var immunizations = await _context.Immunizations
-                    .Where(i => i.PatientId == patientId)
-                    .OrderByDescending(i => i.AdministeredDate)
-                    .ToListAsync();
-
+                var immunizations = await _immunizationService.GetPatientImmunizationsAsync(patientId);
                 return Ok(immunizations);
             }
             catch (Exception ex)
@@ -57,16 +52,12 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                immunization.AdministeredDate = DateTime.UtcNow;
-                immunization.CreatedDate = DateTime.UtcNow;
-                immunization.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdImmunization = await _immunizationService.RecordImmunizationAsync(immunization, userId);
 
-                _context.Immunizations.Add(immunization);
-                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Immunization recorded for patient {createdImmunization.PatientId}: {createdImmunization.VaccineName}");
 
-                _logger.LogInformation($"Immunization recorded for patient {immunization.PatientId}: {immunization.VaccineName}");
-
-                return Ok(immunization);
+                return Ok(createdImmunization);
             }
             catch (Exception ex)
             {
@@ -89,21 +80,14 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(new { message = "Immunization ID mismatch" });
                 }
 
-                var existingImmunization = await _context.Immunizations.FindAsync(id);
-                if (existingImmunization == null)
-                {
-                    return NotFound(new { message = "Immunization not found" });
-                }
-
-                existingImmunization.LotNumber = immunization.LotNumber;
-                existingImmunization.Manufacturer = immunization.Manufacturer;
-                existingImmunization.Notes = immunization.Notes;
-                existingImmunization.ModifiedDate = DateTime.UtcNow;
-                existingImmunization.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _immunizationService.UpdateImmunizationAsync(id, immunization, userId);
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Immunization not found" });
             }
             catch (Exception ex)
             {
@@ -121,33 +105,8 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var immunizations = await _context.Immunizations
-                    .Where(i => i.PatientId == patientId)
-                    .OrderBy(i => i.AdministeredDate)
-                    .Select(i => new
-                    {
-                        i.VaccineName,
-                        i.CVXCode,
-                        i.AdministeredDate,
-                        i.DoseNumber,
-                        i.AdministeredBy,
-                        i.Manufacturer
-                    })
-                    .ToListAsync();
-
-                var patient = await _context.Patients.FindAsync(patientId);
-
-                return Ok(new
-                {
-                    patient = new
-                    {
-                        patient?.FirstName,
-                        patient?.LastName,
-                        patient?.DateOfBirth
-                    },
-                    totalImmunizations = immunizations.Count,
-                    immunizations
-                });
+                var history = await _immunizationService.GetImmunizationHistoryAsync(patientId);
+                return Ok(history);
             }
             catch (Exception ex)
             {

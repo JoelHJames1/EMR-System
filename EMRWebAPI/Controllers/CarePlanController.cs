@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class CarePlanController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly ICarePlanService _carePlanService;
         private readonly ILogger<CarePlanController> _logger;
 
-        public CarePlanController(EMRDBContext context, ILogger<CarePlanController> logger)
+        public CarePlanController(ICarePlanService carePlanService, ILogger<CarePlanController> logger)
         {
-            _context = context;
+            _carePlanService = carePlanService;
             _logger = logger;
         }
 
@@ -29,13 +28,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var carePlans = await _context.CarePlans
-                    .Include(c => c.Provider)
-                    .Include(c => c.Activities)
-                    .Where(c => c.PatientId == patientId)
-                    .OrderByDescending(c => c.CreatedDate)
-                    .ToListAsync();
-
+                var carePlans = await _carePlanService.GetPatientCarePlansAsync(patientId);
                 return Ok(carePlans);
             }
             catch (Exception ex)
@@ -54,17 +47,11 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var carePlan = await _context.CarePlans
-                    .Include(c => c.Patient)
-                    .Include(c => c.Provider)
-                    .Include(c => c.Activities)
-                    .FirstOrDefaultAsync(c => c.Id == id);
-
+                var carePlan = await _carePlanService.GetCarePlanByIdAsync(id);
                 if (carePlan == null)
                 {
                     return NotFound(new { message = "Care plan not found" });
                 }
-
                 return Ok(carePlan);
             }
             catch (Exception ex)
@@ -88,16 +75,12 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                carePlan.Status = "Active";
-                carePlan.CreatedDate = DateTime.UtcNow;
-                carePlan.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdCarePlan = await _carePlanService.CreateCarePlanAsync(carePlan, userId);
 
-                _context.CarePlans.Add(carePlan);
-                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Care plan created: {createdCarePlan.Id}");
 
-                _logger.LogInformation($"Care plan created: {carePlan.Id}");
-
-                return CreatedAtAction(nameof(GetCarePlan), new { id = carePlan.Id }, carePlan);
+                return CreatedAtAction(nameof(GetCarePlan), new { id = createdCarePlan.Id }, createdCarePlan);
             }
             catch (Exception ex)
             {
@@ -117,19 +100,12 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var carePlan = await _context.CarePlans.FindAsync(id);
-                if (carePlan == null)
-                {
-                    return NotFound(new { message = "Care plan not found" });
-                }
-
-                activity.CarePlanId = id;
-                activity.CreatedDate = DateTime.UtcNow;
-
-                _context.CarePlanActivities.Add(activity);
-                await _context.SaveChangesAsync();
-
-                return Ok(activity);
+                var addedActivity = await _carePlanService.AddActivityAsync(id, activity);
+                return Ok(addedActivity);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Care plan not found" });
             }
             catch (Exception ex)
             {
@@ -149,22 +125,12 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var activity = await _context.CarePlanActivities.FindAsync(activityId);
-                if (activity == null)
-                {
-                    return NotFound(new { message = "Activity not found" });
-                }
-
-                activity.Status = status;
-
-                if (status == "Completed")
-                {
-                    activity.CompletedDate = DateTime.UtcNow;
-                }
-
-                await _context.SaveChangesAsync();
-
+                await _carePlanService.UpdateActivityStatusAsync(activityId, status);
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Activity not found" });
             }
             catch (Exception ex)
             {
@@ -184,24 +150,13 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var carePlan = await _context.CarePlans.FindAsync(id);
-                if (carePlan == null)
-                {
-                    return NotFound(new { message = "Care plan not found" });
-                }
-
-                carePlan.Status = status;
-                carePlan.ModifiedDate = DateTime.UtcNow;
-                carePlan.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                if (status == "Completed")
-                {
-                    carePlan.EndDate = DateTime.UtcNow;
-                }
-
-                await _context.SaveChangesAsync();
-
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _carePlanService.UpdateCarePlanStatusAsync(id, status, userId);
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Care plan not found" });
             }
             catch (Exception ex)
             {

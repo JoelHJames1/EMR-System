@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class EncounterController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IEncounterService _encounterService;
         private readonly ILogger<EncounterController> _logger;
 
-        public EncounterController(EMRDBContext context, ILogger<EncounterController> logger)
+        public EncounterController(IEncounterService encounterService, ILogger<EncounterController> logger)
         {
-            _context = context;
+            _encounterService = encounterService;
             _logger = logger;
         }
 
@@ -31,26 +30,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var query = _context.Encounters
-                    .Include(e => e.Patient)
-                    .Include(e => e.Provider)
-                    .Include(e => e.Location)
-                    .AsQueryable();
-
-                if (patientId.HasValue)
-                {
-                    query = query.Where(e => e.PatientId == patientId.Value);
-                }
-
-                if (!string.IsNullOrEmpty(status))
-                {
-                    query = query.Where(e => e.Status == status);
-                }
-
-                var encounters = await query
-                    .OrderByDescending(e => e.StartDate)
-                    .ToListAsync();
-
+                var encounters = await _encounterService.GetEncountersAsync(patientId, status);
                 return Ok(encounters);
             }
             catch (Exception ex)
@@ -69,20 +49,11 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var encounter = await _context.Encounters
-                    .Include(e => e.Patient)
-                    .Include(e => e.Provider)
-                    .Include(e => e.Location)
-                    .Include(e => e.Diagnoses)
-                    .Include(e => e.Procedures)
-                    .Include(e => e.Observations)
-                    .FirstOrDefaultAsync(e => e.Id == id);
-
+                var encounter = await _encounterService.GetEncounterByIdAsync(id);
                 if (encounter == null)
                 {
                     return NotFound(new { message = "Encounter not found" });
                 }
-
                 return Ok(encounter);
             }
             catch (Exception ex)
@@ -106,15 +77,12 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                encounter.CreatedDate = DateTime.UtcNow;
-                encounter.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdEncounter = await _encounterService.CreateEncounterAsync(encounter, userId);
 
-                _context.Encounters.Add(encounter);
-                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Encounter created: {createdEncounter.Id}");
 
-                _logger.LogInformation($"Encounter created: {encounter.Id}");
-
-                return CreatedAtAction(nameof(GetEncounter), new { id = encounter.Id }, encounter);
+                return CreatedAtAction(nameof(GetEncounter), new { id = createdEncounter.Id }, createdEncounter);
             }
             catch (Exception ex)
             {
@@ -137,24 +105,16 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(new { message = "Encounter ID mismatch" });
                 }
 
-                var existingEncounter = await _context.Encounters.FindAsync(id);
-                if (existingEncounter == null)
-                {
-                    return NotFound(new { message = "Encounter not found" });
-                }
-
-                existingEncounter.Status = encounter.Status;
-                existingEncounter.EndDate = encounter.EndDate;
-                existingEncounter.DischargeDate = encounter.DischargeDate;
-                existingEncounter.DischargeDisposition = encounter.DischargeDisposition;
-                existingEncounter.ModifiedDate = DateTime.UtcNow;
-                existingEncounter.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _encounterService.UpdateEncounterAsync(id, encounter, userId);
 
                 _logger.LogInformation($"Encounter updated: {id}");
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Encounter not found" });
             }
             catch (Exception ex)
             {
@@ -172,11 +132,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var diagnoses = await _context.Diagnoses
-                    .Where(d => d.EncounterId == id)
-                    .OrderBy(d => d.Rank)
-                    .ToListAsync();
-
+                var diagnoses = await _encounterService.GetEncounterDiagnosesAsync(id);
                 return Ok(diagnoses);
             }
             catch (Exception ex)

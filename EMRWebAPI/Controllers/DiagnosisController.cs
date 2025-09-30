@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class DiagnosisController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IDiagnosisService _diagnosisService;
         private readonly ILogger<DiagnosisController> _logger;
 
-        public DiagnosisController(EMRDBContext context, ILogger<DiagnosisController> logger)
+        public DiagnosisController(IDiagnosisService diagnosisService, ILogger<DiagnosisController> logger)
         {
-            _context = context;
+            _diagnosisService = diagnosisService;
             _logger = logger;
         }
 
@@ -29,12 +28,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var diagnoses = await _context.Diagnoses
-                    .Include(d => d.Provider)
-                    .Where(d => d.PatientId == patientId)
-                    .OrderByDescending(d => d.DiagnosisDate)
-                    .ToListAsync();
-
+                var diagnoses = await _diagnosisService.GetPatientDiagnosesAsync(patientId);
                 return Ok(diagnoses);
             }
             catch (Exception ex)
@@ -58,17 +52,13 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                diagnosis.CreatedDate = DateTime.UtcNow;
-                diagnosis.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                diagnosis.DiagnosisDate = DateTime.UtcNow;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdDiagnosis = await _diagnosisService.CreateDiagnosisAsync(diagnosis, userId);
 
-                _context.Diagnoses.Add(diagnosis);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Diagnosis created: {diagnosis.Id}");
+                _logger.LogInformation($"Diagnosis created: {createdDiagnosis.Id}");
 
                 return CreatedAtAction(nameof(GetPatientDiagnoses),
-                    new { patientId = diagnosis.PatientId }, diagnosis);
+                    new { patientId = createdDiagnosis.PatientId }, createdDiagnosis);
             }
             catch (Exception ex)
             {
@@ -91,22 +81,14 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(new { message = "Diagnosis ID mismatch" });
                 }
 
-                var existingDiagnosis = await _context.Diagnoses.FindAsync(id);
-                if (existingDiagnosis == null)
-                {
-                    return NotFound(new { message = "Diagnosis not found" });
-                }
-
-                existingDiagnosis.ClinicalStatus = diagnosis.ClinicalStatus;
-                existingDiagnosis.VerificationStatus = diagnosis.VerificationStatus;
-                existingDiagnosis.Severity = diagnosis.Severity;
-                existingDiagnosis.Notes = diagnosis.Notes;
-                existingDiagnosis.ModifiedDate = DateTime.UtcNow;
-                existingDiagnosis.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _diagnosisService.UpdateDiagnosisAsync(id, diagnosis, userId);
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Diagnosis not found" });
             }
             catch (Exception ex)
             {

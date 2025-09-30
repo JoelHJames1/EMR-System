@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class InsuranceController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IInsuranceService _insuranceService;
         private readonly ILogger<InsuranceController> _logger;
 
-        public InsuranceController(EMRDBContext context, ILogger<InsuranceController> logger)
+        public InsuranceController(IInsuranceService insuranceService, ILogger<InsuranceController> logger)
         {
-            _context = context;
+            _insuranceService = insuranceService;
             _logger = logger;
         }
 
@@ -29,12 +28,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var insurance = await _context.Insurances
-                    .Where(i => i.PatientId == patientId && i.IsActive)
-                    .OrderByDescending(i => i.IsPrimary)
-                    .ThenByDescending(i => i.EffectiveDate)
-                    .ToListAsync();
-
+                var insurance = await _insuranceService.GetPatientInsuranceAsync(patientId);
                 return Ok(insurance);
             }
             catch (Exception ex)
@@ -58,28 +52,12 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                // If this is primary, set others to secondary
-                if (insurance.IsPrimary)
-                {
-                    var existingPrimary = await _context.Insurances
-                        .Where(i => i.PatientId == insurance.PatientId && i.IsPrimary && i.IsActive)
-                        .ToListAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdInsurance = await _insuranceService.AddInsuranceAsync(insurance, userId);
 
-                    foreach (var ins in existingPrimary)
-                    {
-                        ins.IsPrimary = false;
-                    }
-                }
+                _logger.LogInformation($"Insurance added for patient {createdInsurance.PatientId}");
 
-                insurance.CreatedDate = DateTime.UtcNow;
-                insurance.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                _context.Insurances.Add(insurance);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Insurance added for patient {insurance.PatientId}");
-
-                return Ok(insurance);
+                return Ok(createdInsurance);
             }
             catch (Exception ex)
             {
@@ -102,23 +80,14 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(new { message = "Insurance ID mismatch" });
                 }
 
-                var existingInsurance = await _context.Insurances.FindAsync(id);
-                if (existingInsurance == null)
-                {
-                    return NotFound(new { message = "Insurance not found" });
-                }
-
-                existingInsurance.InsuranceCompany = insurance.InsuranceCompany;
-                existingInsurance.PolicyNumber = insurance.PolicyNumber;
-                existingInsurance.GroupNumber = insurance.GroupNumber;
-                existingInsurance.EffectiveDate = insurance.EffectiveDate;
-                existingInsurance.ExpirationDate = insurance.ExpirationDate;
-                existingInsurance.ModifiedDate = DateTime.UtcNow;
-                existingInsurance.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _insuranceService.UpdateInsuranceAsync(id, insurance, userId);
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Insurance not found" });
             }
             catch (Exception ex)
             {
@@ -136,26 +105,12 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var insurance = await _context.Insurances.FindAsync(id);
-                if (insurance == null)
-                {
-                    return NotFound(new { message = "Insurance not found" });
-                }
-
-                // Mock verification - in real implementation, integrate with eligibility verification service
-                var isActive = insurance.IsActive &&
-                              insurance.EffectiveDate <= DateTime.Today &&
-                              (!insurance.ExpirationDate.HasValue || insurance.ExpirationDate >= DateTime.Today);
-
-                return Ok(new
-                {
-                    insurance.PolicyNumber,
-                    insurance.InsuranceCompany,
-                    isEligible = isActive,
-                    effectiveDate = insurance.EffectiveDate,
-                    expirationDate = insurance.ExpirationDate,
-                    verifiedDate = DateTime.UtcNow
-                });
+                var verificationResult = await _insuranceService.VerifyInsuranceAsync(id);
+                return Ok(verificationResult);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Insurance not found" });
             }
             catch (Exception ex)
             {
@@ -173,19 +128,14 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var insurance = await _context.Insurances.FindAsync(id);
-                if (insurance == null)
-                {
-                    return NotFound(new { message = "Insurance not found" });
-                }
-
-                insurance.IsActive = false;
-                insurance.ModifiedDate = DateTime.UtcNow;
-                insurance.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _insuranceService.DeactivateInsuranceAsync(id, userId);
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Insurance not found" });
             }
             catch (Exception ex)
             {

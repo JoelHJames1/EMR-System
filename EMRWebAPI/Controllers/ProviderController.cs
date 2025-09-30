@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class ProviderController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IProviderService _providerService;
         private readonly ILogger<ProviderController> _logger;
 
-        public ProviderController(EMRDBContext context, ILogger<ProviderController> logger)
+        public ProviderController(IProviderService providerService, ILogger<ProviderController> logger)
         {
-            _context = context;
+            _providerService = providerService;
             _logger = logger;
         }
 
@@ -31,24 +30,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var query = _context.Providers
-                    .Include(p => p.User)
-                    .AsQueryable();
-
-                if (!string.IsNullOrEmpty(specialization))
-                {
-                    query = query.Where(p => p.Specialization.Contains(specialization));
-                }
-
-                if (activeOnly)
-                {
-                    query = query.Where(p => p.IsActive);
-                }
-
-                var providers = await query
-                    .OrderBy(p => p.LastName)
-                    .ToListAsync();
-
+                var providers = await _providerService.GetProvidersAsync(specialization, activeOnly);
                 return Ok(providers);
             }
             catch (Exception ex)
@@ -67,15 +49,11 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var provider = await _context.Providers
-                    .Include(p => p.User)
-                    .FirstOrDefaultAsync(p => p.Id == id);
-
+                var provider = await _providerService.GetProviderByIdAsync(id);
                 if (provider == null)
                 {
                     return NotFound(new { message = "Provider not found" });
                 }
-
                 return Ok(provider);
             }
             catch (Exception ex)
@@ -99,23 +77,15 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                // Check if license number already exists
-                var existingProvider = await _context.Providers
-                    .FirstOrDefaultAsync(p => p.LicenseNumber == provider.LicenseNumber);
+                var createdProvider = await _providerService.CreateProviderAsync(provider);
 
-                if (existingProvider != null)
-                {
-                    return BadRequest(new { message = "License number already exists" });
-                }
+                _logger.LogInformation($"Provider created: {createdProvider.Id}");
 
-                provider.CreatedDate = DateTime.UtcNow;
-
-                _context.Providers.Add(provider);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Provider created: {provider.Id}");
-
-                return CreatedAtAction(nameof(GetProvider), new { id = provider.Id }, provider);
+                return CreatedAtAction(nameof(GetProvider), new { id = createdProvider.Id }, createdProvider);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -138,25 +108,13 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(new { message = "Provider ID mismatch" });
                 }
 
-                var existingProvider = await _context.Providers.FindAsync(id);
-                if (existingProvider == null)
-                {
-                    return NotFound(new { message = "Provider not found" });
-                }
-
-                existingProvider.FirstName = provider.FirstName;
-                existingProvider.LastName = provider.LastName;
-                existingProvider.MiddleName = provider.MiddleName;
-                existingProvider.Specialization = provider.Specialization;
-                existingProvider.Email = provider.Email;
-                existingProvider.PhoneNumber = provider.PhoneNumber;
-                existingProvider.NPI = provider.NPI;
-                existingProvider.DEA = provider.DEA;
-                existingProvider.ModifiedDate = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
+                await _providerService.UpdateProviderAsync(id, provider);
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Provider not found" });
             }
             catch (Exception ex)
             {
@@ -177,26 +135,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var query = _context.Appointments
-                    .Include(a => a.Patient)
-                    .Include(a => a.Location)
-                    .Where(a => a.ProviderId == id);
-
-                if (startDate.HasValue)
-                {
-                    query = query.Where(a => a.AppointmentDate >= startDate.Value);
-                }
-
-                if (endDate.HasValue)
-                {
-                    query = query.Where(a => a.AppointmentDate <= endDate.Value);
-                }
-
-                var appointments = await query
-                    .OrderBy(a => a.AppointmentDate)
-                    .ThenBy(a => a.StartTime)
-                    .ToListAsync();
-
+                var appointments = await _providerService.GetProviderScheduleAsync(id, startDate, endDate);
                 return Ok(appointments);
             }
             catch (Exception ex)
@@ -215,34 +154,8 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var totalPatients = await _context.Encounters
-                    .Where(e => e.ProviderId == id)
-                    .Select(e => e.PatientId)
-                    .Distinct()
-                    .CountAsync();
-
-                var totalEncounters = await _context.Encounters
-                    .CountAsync(e => e.ProviderId == id);
-
-                var totalPrescriptions = await _context.Prescriptions
-                    .CountAsync(p => p.ProviderId == id);
-
-                var totalLabOrders = await _context.LabOrders
-                    .CountAsync(l => l.ProviderId == id);
-
-                var upcomingAppointments = await _context.Appointments
-                    .CountAsync(a => a.ProviderId == id &&
-                                    a.AppointmentDate >= DateTime.Today &&
-                                    a.Status != "Cancelled");
-
-                return Ok(new
-                {
-                    totalPatients,
-                    totalEncounters,
-                    totalPrescriptions,
-                    totalLabOrders,
-                    upcomingAppointments
-                });
+                var statistics = await _providerService.GetProviderStatisticsAsync(id);
+                return Ok(statistics);
             }
             catch (Exception ex)
             {

@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class ObservationController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IObservationService _observationService;
         private readonly ILogger<ObservationController> _logger;
 
-        public ObservationController(EMRDBContext context, ILogger<ObservationController> logger)
+        public ObservationController(IObservationService observationService, ILogger<ObservationController> logger)
         {
-            _context = context;
+            _observationService = observationService;
             _logger = logger;
         }
 
@@ -31,20 +30,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var query = _context.Observations
-                    .Include(o => o.Provider)
-                    .Where(o => o.PatientId == patientId);
-
-                if (!string.IsNullOrEmpty(type))
-                {
-                    query = query.Where(o => o.ObservationType == type);
-                }
-
-                var observations = await query
-                    .OrderByDescending(o => o.ObservationDateTime)
-                    .Take(100)
-                    .ToListAsync();
-
+                var observations = await _observationService.GetPatientObservationsAsync(patientId, type);
                 return Ok(observations);
             }
             catch (Exception ex)
@@ -68,16 +54,12 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                observation.ObservationDateTime = DateTime.UtcNow;
-                observation.CreatedDate = DateTime.UtcNow;
-                observation.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdObservation = await _observationService.CreateObservationAsync(observation, userId);
 
-                _context.Observations.Add(observation);
-                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Observation created: {createdObservation.Id}");
 
-                _logger.LogInformation($"Observation created: {observation.Id}");
-
-                return Ok(observation);
+                return Ok(createdObservation);
             }
             catch (Exception ex)
             {
@@ -100,30 +82,11 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                vitalSign.MeasurementDate = DateTime.UtcNow;
-                vitalSign.CreatedDate = DateTime.UtcNow;
+                var createdVitalSign = await _observationService.RecordVitalSignsAsync(vitalSign);
 
-                // Calculate BMI if height and weight provided
-                if (vitalSign.Height.HasValue && vitalSign.Weight.HasValue)
-                {
-                    // Convert to metric if needed and calculate BMI
-                    decimal heightMeters = vitalSign.HeightUnit == "in"
-                        ? vitalSign.Height.Value * 0.0254m
-                        : vitalSign.Height.Value / 100;
+                _logger.LogInformation($"Vital signs recorded for patient {createdVitalSign.PatientId}");
 
-                    decimal weightKg = vitalSign.WeightUnit == "lbs"
-                        ? vitalSign.Weight.Value * 0.453592m
-                        : vitalSign.Weight.Value;
-
-                    vitalSign.BMI = Math.Round(weightKg / (heightMeters * heightMeters), 2);
-                }
-
-                _context.VitalSigns.Add(vitalSign);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Vital signs recorded for patient {vitalSign.PatientId}");
-
-                return Ok(vitalSign);
+                return Ok(createdVitalSign);
             }
             catch (Exception ex)
             {
@@ -143,25 +106,8 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var startDate = DateTime.UtcNow.AddDays(-days);
-
-                var vitals = await _context.VitalSigns
-                    .Where(v => v.PatientId == patientId && v.MeasurementDate >= startDate)
-                    .OrderBy(v => v.MeasurementDate)
-                    .Select(v => new
-                    {
-                        date = v.MeasurementDate,
-                        temperature = v.Temperature,
-                        systolic = v.SystolicBP,
-                        diastolic = v.DiastolicBP,
-                        heartRate = v.HeartRate,
-                        oxygenSat = v.OxygenSaturation,
-                        weight = v.Weight,
-                        bmi = v.BMI
-                    })
-                    .ToListAsync();
-
-                return Ok(new { patientId, days, data = vitals });
+                var trends = await _observationService.GetVitalsTrendsAsync(patientId, days);
+                return Ok(trends);
             }
             catch (Exception ex)
             {

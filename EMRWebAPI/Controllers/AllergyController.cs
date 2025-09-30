@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class AllergyController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IAllergyService _allergyService;
         private readonly ILogger<AllergyController> _logger;
 
-        public AllergyController(EMRDBContext context, ILogger<AllergyController> logger)
+        public AllergyController(IAllergyService allergyService, ILogger<AllergyController> logger)
         {
-            _context = context;
+            _allergyService = allergyService;
             _logger = logger;
         }
 
@@ -29,11 +28,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var allergies = await _context.Allergies
-                    .Where(a => a.PatientId == patientId && a.IsActive)
-                    .OrderByDescending(a => a.Severity)
-                    .ToListAsync();
-
+                var allergies = await _allergyService.GetPatientAllergiesAsync(patientId);
                 return Ok(allergies);
             }
             catch (Exception ex)
@@ -57,15 +52,12 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                allergy.CreatedDate = DateTime.UtcNow;
-                allergy.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdAllergy = await _allergyService.AddAllergyAsync(allergy, userId);
 
-                _context.Allergies.Add(allergy);
-                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Allergy added for patient {createdAllergy.PatientId}: {createdAllergy.Allergen}");
 
-                _logger.LogInformation($"Allergy added for patient {allergy.PatientId}: {allergy.Allergen}");
-
-                return Ok(allergy);
+                return Ok(createdAllergy);
             }
             catch (Exception ex)
             {
@@ -88,21 +80,14 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(new { message = "Allergy ID mismatch" });
                 }
 
-                var existingAllergy = await _context.Allergies.FindAsync(id);
-                if (existingAllergy == null)
-                {
-                    return NotFound(new { message = "Allergy not found" });
-                }
-
-                existingAllergy.Severity = allergy.Severity;
-                existingAllergy.Reaction = allergy.Reaction;
-                existingAllergy.Notes = allergy.Notes;
-                existingAllergy.ModifiedDate = DateTime.UtcNow;
-                existingAllergy.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _allergyService.UpdateAllergyAsync(id, allergy, userId);
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Allergy not found" });
             }
             catch (Exception ex)
             {
@@ -120,19 +105,14 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var allergy = await _context.Allergies.FindAsync(id);
-                if (allergy == null)
-                {
-                    return NotFound(new { message = "Allergy not found" });
-                }
-
-                allergy.IsActive = false;
-                allergy.ModifiedDate = DateTime.UtcNow;
-                allergy.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _allergyService.DeactivateAllergyAsync(id, userId);
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Allergy not found" });
             }
             catch (Exception ex)
             {

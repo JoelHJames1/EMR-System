@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class PrescriptionController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IPrescriptionService _prescriptionService;
         private readonly ILogger<PrescriptionController> _logger;
 
-        public PrescriptionController(EMRDBContext context, ILogger<PrescriptionController> logger)
+        public PrescriptionController(IPrescriptionService prescriptionService, ILogger<PrescriptionController> logger)
         {
-            _context = context;
+            _prescriptionService = prescriptionService;
             _logger = logger;
         }
 
@@ -31,20 +30,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var query = _context.Prescriptions
-                    .Include(p => p.Medication)
-                    .Include(p => p.Provider)
-                    .Where(p => p.PatientId == patientId);
-
-                if (!string.IsNullOrEmpty(status))
-                {
-                    query = query.Where(p => p.Status == status);
-                }
-
-                var prescriptions = await query
-                    .OrderByDescending(p => p.StartDate)
-                    .ToListAsync();
-
+                var prescriptions = await _prescriptionService.GetPatientPrescriptionsAsync(patientId, status);
                 return Ok(prescriptions);
             }
             catch (Exception ex)
@@ -68,29 +54,17 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                // Check if medication is controlled substance
-                var medication = await _context.Medications.FindAsync(prescription.MedicationId);
-                if (medication == null)
-                {
-                    return BadRequest(new { message = "Medication not found" });
-                }
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdPrescription = await _prescriptionService.CreatePrescriptionAsync(prescription, userId);
 
-                if (medication.IsControlledSubstance)
-                {
-                    _logger.LogWarning($"Controlled substance prescribed: {medication.Name} (DEA: {medication.DEASchedule})");
-                }
-
-                prescription.CreatedDate = DateTime.UtcNow;
-                prescription.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                prescription.StartDate = DateTime.UtcNow;
-
-                _context.Prescriptions.Add(prescription);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Prescription created: {prescription.Id}");
+                _logger.LogInformation($"Prescription created: {createdPrescription.Id}");
 
                 return CreatedAtAction(nameof(GetPatientPrescriptions),
-                    new { patientId = prescription.PatientId }, prescription);
+                    new { patientId = createdPrescription.PatientId }, createdPrescription);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -110,26 +84,16 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var prescription = await _context.Prescriptions.FindAsync(id);
-                if (prescription == null)
-                {
-                    return NotFound(new { message = "Prescription not found" });
-                }
-
-                prescription.Status = status;
-                prescription.ModifiedDate = DateTime.UtcNow;
-                prescription.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                if (status == "Discontinued" || status == "Completed")
-                {
-                    prescription.EndDate = DateTime.UtcNow;
-                }
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _prescriptionService.UpdatePrescriptionStatusAsync(id, status, userId);
 
                 _logger.LogInformation($"Prescription {id} status updated to {status}");
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Prescription not found" });
             }
             catch (Exception ex)
             {
@@ -148,22 +112,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var query = _context.Medications.AsQueryable();
-
-                if (!string.IsNullOrEmpty(search))
-                {
-                    query = query.Where(m =>
-                        m.Name.Contains(search) ||
-                        m.GenericName.Contains(search) ||
-                        (m.BrandName != null && m.BrandName.Contains(search)));
-                }
-
-                var medications = await query
-                    .Where(m => m.IsActive)
-                    .OrderBy(m => m.Name)
-                    .Take(100)
-                    .ToListAsync();
-
+                var medications = await _prescriptionService.GetMedicationsAsync(search);
                 return Ok(medications);
             }
             catch (Exception ex)

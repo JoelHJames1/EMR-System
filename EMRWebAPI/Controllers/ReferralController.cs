@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class ReferralController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IReferralService _referralService;
         private readonly ILogger<ReferralController> _logger;
 
-        public ReferralController(EMRDBContext context, ILogger<ReferralController> logger)
+        public ReferralController(IReferralService referralService, ILogger<ReferralController> logger)
         {
-            _context = context;
+            _referralService = referralService;
             _logger = logger;
         }
 
@@ -29,13 +28,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var referrals = await _context.Referrals
-                    .Include(r => r.ReferringProvider)
-                    .Include(r => r.ReferredToProvider)
-                    .Where(r => r.PatientId == patientId)
-                    .OrderByDescending(r => r.ReferralDate)
-                    .ToListAsync();
-
+                var referrals = await _referralService.GetPatientReferralsAsync(patientId);
                 return Ok(referrals);
             }
             catch (Exception ex)
@@ -54,17 +47,11 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var referral = await _context.Referrals
-                    .Include(r => r.Patient)
-                    .Include(r => r.ReferringProvider)
-                    .Include(r => r.ReferredToProvider)
-                    .FirstOrDefaultAsync(r => r.Id == id);
-
+                var referral = await _referralService.GetReferralByIdAsync(id);
                 if (referral == null)
                 {
                     return NotFound(new { message = "Referral not found" });
                 }
-
                 return Ok(referral);
             }
             catch (Exception ex)
@@ -88,19 +75,12 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                // Generate referral number
-                referral.ReferralNumber = $"REF-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}";
-                referral.Status = "Requested";
-                referral.ReferralDate = DateTime.UtcNow;
-                referral.CreatedDate = DateTime.UtcNow;
-                referral.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdReferral = await _referralService.CreateReferralAsync(referral, userId);
 
-                _context.Referrals.Add(referral);
-                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Referral created: {createdReferral.Id}");
 
-                _logger.LogInformation($"Referral created: {referral.Id}");
-
-                return CreatedAtAction(nameof(GetReferral), new { id = referral.Id }, referral);
+                return CreatedAtAction(nameof(GetReferral), new { id = createdReferral.Id }, createdReferral);
             }
             catch (Exception ex)
             {
@@ -120,24 +100,14 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var referral = await _context.Referrals.FindAsync(id);
-                if (referral == null)
-                {
-                    return NotFound(new { message = "Referral not found" });
-                }
-
-                referral.Status = status;
-                referral.ModifiedDate = DateTime.UtcNow;
-                referral.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                if (status == "Completed")
-                {
-                    referral.CompletedDate = DateTime.UtcNow;
-                }
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _referralService.UpdateReferralStatusAsync(id, status, userId);
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Referral not found" });
             }
             catch (Exception ex)
             {
@@ -155,22 +125,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var query = _context.Referrals
-                    .Include(r => r.Patient)
-                    .Include(r => r.ReferringProvider)
-                    .Include(r => r.ReferredToProvider)
-                    .Where(r => r.Status == "Requested" || r.Status == "Active");
-
-                if (providerId.HasValue)
-                {
-                    query = query.Where(r => r.ReferredToProviderId == providerId.Value);
-                }
-
-                var referrals = await query
-                    .OrderBy(r => r.Priority)
-                    .ThenByDescending(r => r.ReferralDate)
-                    .ToListAsync();
-
+                var referrals = await _referralService.GetPendingReferralsAsync(providerId);
                 return Ok(referrals);
             }
             catch (Exception ex)

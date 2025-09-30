@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class ProcedureController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IProcedureService _procedureService;
         private readonly ILogger<ProcedureController> _logger;
 
-        public ProcedureController(EMRDBContext context, ILogger<ProcedureController> logger)
+        public ProcedureController(IProcedureService procedureService, ILogger<ProcedureController> logger)
         {
-            _context = context;
+            _procedureService = procedureService;
             _logger = logger;
         }
 
@@ -29,13 +28,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var procedures = await _context.Procedures
-                    .Include(p => p.Provider)
-                    .Include(p => p.Location)
-                    .Where(p => p.PatientId == patientId)
-                    .OrderByDescending(p => p.PerformedDate ?? p.ScheduledDate)
-                    .ToListAsync();
-
+                var procedures = await _procedureService.GetPatientProceduresAsync(patientId);
                 return Ok(procedures);
             }
             catch (Exception ex)
@@ -54,17 +47,11 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var procedure = await _context.Procedures
-                    .Include(p => p.Patient)
-                    .Include(p => p.Provider)
-                    .Include(p => p.Location)
-                    .FirstOrDefaultAsync(p => p.Id == id);
-
+                var procedure = await _procedureService.GetProcedureByIdAsync(id);
                 if (procedure == null)
                 {
                     return NotFound(new { message = "Procedure not found" });
                 }
-
                 return Ok(procedure);
             }
             catch (Exception ex)
@@ -88,16 +75,12 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                procedure.Status = "Scheduled";
-                procedure.CreatedDate = DateTime.UtcNow;
-                procedure.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdProcedure = await _procedureService.ScheduleProcedureAsync(procedure, userId);
 
-                _context.Procedures.Add(procedure);
-                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Procedure scheduled: {createdProcedure.Id}");
 
-                _logger.LogInformation($"Procedure scheduled: {procedure.Id}");
-
-                return CreatedAtAction(nameof(GetProcedure), new { id = procedure.Id }, procedure);
+                return CreatedAtAction(nameof(GetProcedure), new { id = createdProcedure.Id }, createdProcedure);
             }
             catch (Exception ex)
             {
@@ -117,36 +100,16 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var procedure = await _context.Procedures.FindAsync(id);
-                if (procedure == null)
-                {
-                    return NotFound(new { message = "Procedure not found" });
-                }
-
-                procedure.Status = status;
-                procedure.ModifiedDate = DateTime.UtcNow;
-                procedure.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                if (status == "InProgress" && !procedure.StartTime.HasValue)
-                {
-                    procedure.StartTime = DateTime.UtcNow;
-                }
-                else if (status == "Completed")
-                {
-                    procedure.EndTime = DateTime.UtcNow;
-                    procedure.PerformedDate = DateTime.UtcNow;
-
-                    if (procedure.StartTime.HasValue)
-                    {
-                        procedure.DurationMinutes = (int)(procedure.EndTime.Value - procedure.StartTime.Value).TotalMinutes;
-                    }
-                }
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _procedureService.UpdateProcedureStatusAsync(id, status, userId);
 
                 _logger.LogInformation($"Procedure {id} status updated to {status}");
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Procedure not found" });
             }
             catch (Exception ex)
             {
@@ -166,22 +129,14 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var procedure = await _context.Procedures.FindAsync(id);
-                if (procedure == null)
-                {
-                    return NotFound(new { message = "Procedure not found" });
-                }
-
-                procedure.Outcome = outcome.Outcome;
-                procedure.Complications = outcome.Complications;
-                procedure.FollowUpInstructions = outcome.FollowUpInstructions;
-                procedure.Status = "Completed";
-                procedure.ModifiedDate = DateTime.UtcNow;
-                procedure.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _procedureService.RecordOutcomeAsync(id, outcome.Outcome, outcome.Complications, outcome.FollowUpInstructions, userId);
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Procedure not found" });
             }
             catch (Exception ex)
             {
@@ -199,20 +154,15 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var procedure = await _context.Procedures.FindAsync(id);
-                if (procedure == null)
-                {
-                    return NotFound(new { message = "Procedure not found" });
-                }
-
-                procedure.ConsentObtained = true;
-                procedure.ConsentDate = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
+                await _procedureService.RecordConsentAsync(id);
 
                 _logger.LogInformation($"Consent recorded for procedure {id}");
 
                 return Ok(new { message = "Consent recorded successfully" });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Procedure not found" });
             }
             catch (Exception ex)
             {
@@ -231,18 +181,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var targetDate = date ?? DateTime.Today;
-
-                var procedures = await _context.Procedures
-                    .Include(p => p.Patient)
-                    .Include(p => p.Provider)
-                    .Include(p => p.Location)
-                    .Where(p => p.Status == "Scheduled" &&
-                               p.ScheduledDate.HasValue &&
-                               p.ScheduledDate.Value.Date == targetDate.Date)
-                    .OrderBy(p => p.ScheduledDate)
-                    .ToListAsync();
-
+                var procedures = await _procedureService.GetScheduledProceduresAsync(date);
                 return Ok(procedures);
             }
             catch (Exception ex)

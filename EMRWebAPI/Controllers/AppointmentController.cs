@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class AppointmentController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IAppointmentService _appointmentService;
         private readonly ILogger<AppointmentController> _logger;
 
-        public AppointmentController(EMRDBContext context, ILogger<AppointmentController> logger)
+        public AppointmentController(IAppointmentService appointmentService, ILogger<AppointmentController> logger)
         {
-            _context = context;
+            _appointmentService = appointmentService;
             _logger = logger;
         }
 
@@ -33,37 +32,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var query = _context.Appointments
-                    .Include(a => a.Patient)
-                    .Include(a => a.Provider)
-                    .Include(a => a.Location)
-                    .AsQueryable();
-
-                if (startDate.HasValue)
-                {
-                    query = query.Where(a => a.AppointmentDate >= startDate.Value);
-                }
-
-                if (endDate.HasValue)
-                {
-                    query = query.Where(a => a.AppointmentDate <= endDate.Value);
-                }
-
-                if (providerId.HasValue)
-                {
-                    query = query.Where(a => a.ProviderId == providerId.Value);
-                }
-
-                if (!string.IsNullOrEmpty(status))
-                {
-                    query = query.Where(a => a.Status == status);
-                }
-
-                var appointments = await query
-                    .OrderBy(a => a.AppointmentDate)
-                    .ThenBy(a => a.StartTime)
-                    .ToListAsync();
-
+                var appointments = await _appointmentService.GetAppointmentsAsync(startDate, endDate, providerId, status);
                 return Ok(appointments);
             }
             catch (Exception ex)
@@ -82,13 +51,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var appointments = await _context.Appointments
-                    .Include(a => a.Provider)
-                    .Include(a => a.Location)
-                    .Where(a => a.PatientId == patientId)
-                    .OrderByDescending(a => a.AppointmentDate)
-                    .ToListAsync();
-
+                var appointments = await _appointmentService.GetPatientAppointmentsAsync(patientId);
                 return Ok(appointments);
             }
             catch (Exception ex)
@@ -107,17 +70,11 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var appointment = await _context.Appointments
-                    .Include(a => a.Patient)
-                    .Include(a => a.Provider)
-                    .Include(a => a.Location)
-                    .FirstOrDefaultAsync(a => a.Id == id);
-
+                var appointment = await _appointmentService.GetAppointmentByIdAsync(id);
                 if (appointment == null)
                 {
                     return NotFound(new { message = "Appointment not found" });
                 }
-
                 return Ok(appointment);
             }
             catch (Exception ex)
@@ -141,28 +98,16 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                // Check for scheduling conflicts
-                var conflict = await _context.Appointments
-                    .AnyAsync(a =>
-                        a.ProviderId == appointment.ProviderId &&
-                        a.AppointmentDate.Date == appointment.AppointmentDate.Date &&
-                        a.Status != "Cancelled" &&
-                        ((a.StartTime < appointment.EndTime && a.EndTime > appointment.StartTime)));
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdAppointment = await _appointmentService.CreateAppointmentAsync(appointment, userId);
 
-                if (conflict)
-                {
-                    return BadRequest(new { message = "Scheduling conflict detected" });
-                }
+                _logger.LogInformation($"Appointment created: {createdAppointment.Id}");
 
-                appointment.CreatedDate = DateTime.UtcNow;
-                appointment.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                _context.Appointments.Add(appointment);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Appointment created: {appointment.Id}");
-
-                return CreatedAtAction(nameof(GetAppointment), new { id = appointment.Id }, appointment);
+                return CreatedAtAction(nameof(GetAppointment), new { id = createdAppointment.Id }, createdAppointment);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -185,20 +130,14 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(new { message = "Appointment ID mismatch" });
                 }
 
-                var existingAppointment = await _context.Appointments.FindAsync(id);
-                if (existingAppointment == null)
-                {
-                    return NotFound(new { message = "Appointment not found" });
-                }
-
-                existingAppointment.Status = appointment.Status;
-                existingAppointment.Notes = appointment.Notes;
-                existingAppointment.ModifiedDate = DateTime.UtcNow;
-                existingAppointment.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _appointmentService.UpdateAppointmentAsync(id, appointment, userId);
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Appointment not found" });
             }
             catch (Exception ex)
             {
@@ -216,21 +155,16 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var appointment = await _context.Appointments.FindAsync(id);
-                if (appointment == null)
-                {
-                    return NotFound(new { message = "Appointment not found" });
-                }
-
-                appointment.Status = "Cancelled";
-                appointment.ModifiedDate = DateTime.UtcNow;
-                appointment.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _appointmentService.CancelAppointmentAsync(id, userId);
 
                 _logger.LogInformation($"Appointment cancelled: {id}");
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Appointment not found" });
             }
             catch (Exception ex)
             {
@@ -248,14 +182,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var today = DateTime.Today;
-                var appointments = await _context.Appointments
-                    .Include(a => a.Patient)
-                    .Include(a => a.Provider)
-                    .Where(a => a.AppointmentDate.Date == today && a.Status != "Cancelled")
-                    .OrderBy(a => a.StartTime)
-                    .ToListAsync();
-
+                var appointments = await _appointmentService.GetTodayAppointmentsAsync();
                 return Ok(appointments);
             }
             catch (Exception ex)

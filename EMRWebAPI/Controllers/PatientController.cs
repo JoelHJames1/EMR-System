@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class PatientController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IPatientService _patientService;
         private readonly ILogger<PatientController> _logger;
 
-        public PatientController(EMRDBContext context, ILogger<PatientController> logger)
+        public PatientController(IPatientService patientService, ILogger<PatientController> logger)
         {
-            _context = context;
+            _patientService = patientService;
             _logger = logger;
         }
 
@@ -32,28 +31,8 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var query = _context.Patients
-                    .Include(p => p.Address)
-                    .AsQueryable();
-
-                if (!string.IsNullOrEmpty(search))
-                {
-                    query = query.Where(p =>
-                        p.FirstName.Contains(search) ||
-                        p.LastName.Contains(search) ||
-                        p.Email.Contains(search));
-                }
-
-                var totalCount = await query.CountAsync();
-                var patients = await query
-                    .Where(p => p.IsActive)
-                    .OrderBy(p => p.LastName)
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToListAsync();
-
+                var (patients, totalCount) = await _patientService.GetPatientsAsync(page, pageSize, search);
                 Response.Headers.Add("X-Total-Count", totalCount.ToString());
-
                 return Ok(patients);
             }
             catch (Exception ex)
@@ -72,17 +51,11 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var patient = await _context.Patients
-                    .Include(p => p.Address)
-                    .Include(p => p.Allergies)
-                    .Include(p => p.Immunizations)
-                    .FirstOrDefaultAsync(p => p.Id == id);
-
+                var patient = await _patientService.GetPatientByIdAsync(id);
                 if (patient == null)
                 {
                     return NotFound(new { message = "Patient not found" });
                 }
-
                 return Ok(patient);
             }
             catch (Exception ex)
@@ -106,15 +79,12 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                patient.CreatedDate = DateTime.UtcNow;
-                patient.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdPatient = await _patientService.CreatePatientAsync(patient, userId);
 
-                _context.Patients.Add(patient);
-                await _context.SaveChangesAsync();
+                _logger.LogInformation($"Patient created: {createdPatient.Id}");
 
-                _logger.LogInformation($"Patient created: {patient.Id}");
-
-                return CreatedAtAction(nameof(GetPatient), new { id = patient.Id }, patient);
+                return CreatedAtAction(nameof(GetPatient), new { id = createdPatient.Id }, createdPatient);
             }
             catch (Exception ex)
             {
@@ -137,31 +107,16 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(new { message = "Patient ID mismatch" });
                 }
 
-                var existingPatient = await _context.Patients.FindAsync(id);
-                if (existingPatient == null)
-                {
-                    return NotFound(new { message = "Patient not found" });
-                }
-
-                existingPatient.FirstName = patient.FirstName;
-                existingPatient.LastName = patient.LastName;
-                existingPatient.MiddleName = patient.MiddleName;
-                existingPatient.DateOfBirth = patient.DateOfBirth;
-                existingPatient.Gender = patient.Gender;
-                existingPatient.Email = patient.Email;
-                existingPatient.PhoneNumber = patient.PhoneNumber;
-                existingPatient.EmergencyContact = patient.EmergencyContact;
-                existingPatient.EmergencyContactName = patient.EmergencyContactName;
-                existingPatient.BloodType = patient.BloodType;
-                existingPatient.MaritalStatus = patient.MaritalStatus;
-                existingPatient.ModifiedDate = DateTime.UtcNow;
-                existingPatient.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _patientService.UpdatePatientAsync(id, patient, userId);
 
                 _logger.LogInformation($"Patient updated: {id}");
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Patient not found" });
             }
             catch (Exception ex)
             {
@@ -179,21 +134,16 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var patient = await _context.Patients.FindAsync(id);
-                if (patient == null)
-                {
-                    return NotFound(new { message = "Patient not found" });
-                }
-
-                patient.IsActive = false;
-                patient.ModifiedDate = DateTime.UtcNow;
-                patient.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _patientService.DeletePatientAsync(id, userId);
 
                 _logger.LogInformation($"Patient deactivated: {id}");
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Patient not found" });
             }
             catch (Exception ex)
             {
@@ -211,10 +161,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var allergies = await _context.Allergies
-                    .Where(a => a.PatientId == id && a.IsActive)
-                    .ToListAsync();
-
+                var allergies = await _patientService.GetPatientAllergiesAsync(id);
                 return Ok(allergies);
             }
             catch (Exception ex)
@@ -233,12 +180,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var vitals = await _context.VitalSigns
-                    .Where(v => v.PatientId == id)
-                    .OrderByDescending(v => v.MeasurementDate)
-                    .Take(10)
-                    .ToListAsync();
-
+                var vitals = await _patientService.GetPatientVitalsAsync(id);
                 return Ok(vitals);
             }
             catch (Exception ex)

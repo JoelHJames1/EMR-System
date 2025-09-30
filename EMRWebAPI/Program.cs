@@ -73,6 +73,22 @@ services.AddScoped<IInsuranceRepository, InsuranceRepository>();
 // Add Services Here
 services.AddScoped<IUserService, UserService>();
 services.AddScoped<JwtService>();
+services.AddScoped<IPatientService, PatientService>();
+services.AddScoped<IDiagnosisService, DiagnosisService>();
+services.AddScoped<IProcedureService, ProcedureService>();
+services.AddScoped<IAppointmentService, AppointmentService>();
+services.AddScoped<ICarePlanService, CarePlanService>();
+services.AddScoped<IProviderService, ProviderService>();
+services.AddScoped<IReferralService, ReferralService>();
+services.AddScoped<IPrescriptionService, PrescriptionService>();
+services.AddScoped<IMedicationService, MedicationService>();
+services.AddScoped<ILabOrderService, LabOrderService>();
+services.AddScoped<IEncounterService, EncounterService>();
+services.AddScoped<IAllergyService, AllergyService>();
+services.AddScoped<IImmunizationService, ImmunizationService>();
+services.AddScoped<IObservationService, ObservationService>();
+services.AddScoped<IBillingService, BillingService>();
+services.AddScoped<IInsuranceService, InsuranceService>();
 
 // Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key not found in configuration");

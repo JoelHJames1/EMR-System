@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class BillingController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly IBillingService _billingService;
         private readonly ILogger<BillingController> _logger;
 
-        public BillingController(EMRDBContext context, ILogger<BillingController> logger)
+        public BillingController(IBillingService billingService, ILogger<BillingController> logger)
         {
-            _context = context;
+            _billingService = billingService;
             _logger = logger;
         }
 
@@ -29,13 +28,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var billings = await _context.Billings
-                    .Include(b => b.Insurance)
-                    .Include(b => b.BillingItems)
-                    .Where(b => b.PatientId == patientId)
-                    .OrderByDescending(b => b.InvoiceDate)
-                    .ToListAsync();
-
+                var billings = await _billingService.GetPatientBillingsAsync(patientId);
                 return Ok(billings);
             }
             catch (Exception ex)
@@ -54,17 +47,11 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var billing = await _context.Billings
-                    .Include(b => b.Patient)
-                    .Include(b => b.Insurance)
-                    .Include(b => b.BillingItems)
-                    .FirstOrDefaultAsync(b => b.Id == id);
-
+                var billing = await _billingService.GetBillingByIdAsync(id);
                 if (billing == null)
                 {
                     return NotFound(new { message = "Billing record not found" });
                 }
-
                 return Ok(billing);
             }
             catch (Exception ex)
@@ -88,26 +75,12 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                // Generate invoice number
-                billing.InvoiceNumber = $"INV-{DateTime.UtcNow:yyyyMMdd}-{new Random().Next(1000, 9999)}";
-                billing.InvoiceDate = DateTime.UtcNow;
-                billing.BalanceAmount = billing.TotalAmount;
-                billing.CreatedDate = DateTime.UtcNow;
-                billing.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdBilling = await _billingService.CreateBillingAsync(billing, userId);
 
-                // Calculate insurance coverage if insurance is provided
-                if (billing.InsuranceId.HasValue)
-                {
-                    billing.PatientResponsibility = billing.TotalAmount - (billing.InsuranceCoverage ?? 0);
-                    billing.BalanceAmount = billing.PatientResponsibility ?? billing.TotalAmount;
-                }
+                _logger.LogInformation($"Billing created: {createdBilling.Id}");
 
-                _context.Billings.Add(billing);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Billing created: {billing.Id}");
-
-                return CreatedAtAction(nameof(GetBilling), new { id = billing.Id }, billing);
+                return CreatedAtAction(nameof(GetBilling), new { id = createdBilling.Id }, createdBilling);
             }
             catch (Exception ex)
             {
@@ -127,35 +100,16 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var billing = await _context.Billings.FindAsync(id);
-                if (billing == null)
-                {
-                    return NotFound(new { message = "Billing record not found" });
-                }
-
-                billing.PaidAmount += payment.Amount;
-                billing.BalanceAmount = billing.TotalAmount - billing.PaidAmount;
-                billing.PaymentMethod = payment.Method;
-                billing.PaymentDate = DateTime.UtcNow;
-
-                // Update status
-                if (billing.BalanceAmount <= 0)
-                {
-                    billing.Status = "Paid";
-                }
-                else if (billing.PaidAmount > 0)
-                {
-                    billing.Status = "Partial";
-                }
-
-                billing.ModifiedDate = DateTime.UtcNow;
-                billing.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var balance = await _billingService.RecordPaymentAsync(id, payment.Amount, payment.Method, userId);
 
                 _logger.LogInformation($"Payment recorded for billing {id}: ${payment.Amount}");
 
-                return Ok(new { message = "Payment recorded successfully", balance = billing.BalanceAmount });
+                return Ok(new { message = "Payment recorded successfully", balance });
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Billing record not found" });
             }
             catch (Exception ex)
             {
@@ -173,31 +127,8 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var outstanding = await _context.Billings
-                    .Include(b => b.Patient)
-                    .Where(b => b.BalanceAmount > 0)
-                    .OrderByDescending(b => b.BalanceAmount)
-                    .Select(b => new
-                    {
-                        b.Id,
-                        b.InvoiceNumber,
-                        PatientName = $"{b.Patient.FirstName} {b.Patient.LastName}",
-                        b.InvoiceDate,
-                        b.TotalAmount,
-                        b.PaidAmount,
-                        b.BalanceAmount,
-                        b.Status
-                    })
-                    .ToListAsync();
-
-                var totalOutstanding = outstanding.Sum(b => b.BalanceAmount);
-
-                return Ok(new
-                {
-                    totalOutstanding,
-                    count = outstanding.Count,
-                    records = outstanding
-                });
+                var outstanding = await _billingService.GetOutstandingBalancesAsync();
+                return Ok(outstanding);
             }
             catch (Exception ex)
             {

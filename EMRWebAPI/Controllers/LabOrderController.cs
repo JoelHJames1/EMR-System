@@ -1,8 +1,7 @@
-using EMRDataLayer.DataContext;
 using EMRDataLayer.Model;
+using EMRWebAPI.Services.IServices;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace EMRWebAPI.Controllers
 {
@@ -11,12 +10,12 @@ namespace EMRWebAPI.Controllers
     [Authorize]
     public class LabOrderController : ControllerBase
     {
-        private readonly EMRDBContext _context;
+        private readonly ILabOrderService _labOrderService;
         private readonly ILogger<LabOrderController> _logger;
 
-        public LabOrderController(EMRDBContext context, ILogger<LabOrderController> logger)
+        public LabOrderController(ILabOrderService labOrderService, ILogger<LabOrderController> logger)
         {
-            _context = context;
+            _labOrderService = labOrderService;
             _logger = logger;
         }
 
@@ -29,13 +28,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var labOrders = await _context.LabOrders
-                    .Include(l => l.Provider)
-                    .Include(l => l.LabResults)
-                    .Where(l => l.PatientId == patientId)
-                    .OrderByDescending(l => l.OrderedDate)
-                    .ToListAsync();
-
+                var labOrders = await _labOrderService.GetPatientLabOrdersAsync(patientId);
                 return Ok(labOrders);
             }
             catch (Exception ex)
@@ -59,16 +52,13 @@ namespace EMRWebAPI.Controllers
                     return BadRequest(ModelState);
                 }
 
-                labOrder.OrderedDate = DateTime.UtcNow;
-                labOrder.CreatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var createdLabOrder = await _labOrderService.CreateLabOrderAsync(labOrder, userId);
 
-                _context.LabOrders.Add(labOrder);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation($"Lab order created: {labOrder.Id}");
+                _logger.LogInformation($"Lab order created: {createdLabOrder.Id}");
 
                 return CreatedAtAction(nameof(GetPatientLabOrders),
-                    new { patientId = labOrder.PatientId }, labOrder);
+                    new { patientId = createdLabOrder.PatientId }, createdLabOrder);
             }
             catch (Exception ex)
             {
@@ -88,30 +78,16 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var labOrder = await _context.LabOrders.FindAsync(id);
-                if (labOrder == null)
-                {
-                    return NotFound(new { message = "Lab order not found" });
-                }
-
-                labOrder.Status = status;
-                labOrder.ModifiedDate = DateTime.UtcNow;
-                labOrder.ModifiedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-                if (status == "InProgress" && !labOrder.CollectedDate.HasValue)
-                {
-                    labOrder.CollectedDate = DateTime.UtcNow;
-                }
-                else if (status == "Completed")
-                {
-                    labOrder.CompletedDate = DateTime.UtcNow;
-                }
-
-                await _context.SaveChangesAsync();
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "System";
+                await _labOrderService.UpdateLabOrderStatusAsync(id, status, userId);
 
                 _logger.LogInformation($"Lab order {id} status updated to {status}");
 
                 return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Lab order not found" });
             }
             catch (Exception ex)
             {
@@ -131,27 +107,15 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var labOrder = await _context.LabOrders.FindAsync(id);
-                if (labOrder == null)
-                {
-                    return NotFound(new { message = "Lab order not found" });
-                }
-
-                labResult.LabOrderId = id;
-                labResult.CreatedDate = DateTime.UtcNow;
-                labResult.ResultDate = DateTime.UtcNow;
-
-                _context.LabResults.Add(labResult);
-
-                // Update lab order status
-                labOrder.Status = "Completed";
-                labOrder.CompletedDate = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
+                var addedResult = await _labOrderService.AddLabResultAsync(id, labResult);
 
                 _logger.LogInformation($"Lab result added for order: {id}");
 
-                return Ok(labResult);
+                return Ok(addedResult);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "Lab order not found" });
             }
             catch (Exception ex)
             {
@@ -169,14 +133,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var pendingOrders = await _context.LabOrders
-                    .Include(l => l.Patient)
-                    .Include(l => l.Provider)
-                    .Where(l => l.Status == "Ordered" || l.Status == "InProgress")
-                    .OrderBy(l => l.Priority)
-                    .ThenBy(l => l.OrderedDate)
-                    .ToListAsync();
-
+                var pendingOrders = await _labOrderService.GetPendingLabOrdersAsync();
                 return Ok(pendingOrders);
             }
             catch (Exception ex)
