@@ -1421,13 +1421,18 @@ Contributions are welcome! Please follow these steps:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
+This project is licensed under a Proprietary License - see the [LICENSE.txt](LICENSE.txt) file for details.
+
+**Copyright © 2025 Joel Hernandez James. All Rights Reserved.**
 
 ## 📞 Support & Contact
 
 - **GitHub Issues**: [Report bugs or request features](https://github.com/JoelHJames1/EMR-System/issues)
-- **Email**: support@emrsystem.com
+- **Email**: joel.hernandez.james@gmail.com
+- **Phone**: +1 (614) 683-9244
 - **Documentation**: [Technical Documentation](TECHNICAL_DOCUMENTATION.md)
+
+For commercial licensing, partnership opportunities, or permission requests, please contact Joel Hernandez James via the information above.
 
 ## 🙏 Acknowledgments
 
