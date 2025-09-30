@@ -119,5 +119,10 @@ namespace EMRWebAPI.Services
                 throw;
             }
         }
+
+        public async Task<Immunization> RecordImmunizationAsync(Immunization immunization, string userId)
+        {
+            return await CreateImmunizationAsync(immunization, userId);
+        }
     }
 }

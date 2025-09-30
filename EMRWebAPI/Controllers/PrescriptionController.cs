@@ -30,7 +30,7 @@ namespace EMRWebAPI.Controllers
         {
             try
             {
-                var prescriptions = await _prescriptionService.GetPatientPrescriptionsAsync(patientId, status);
+                var prescriptions = await _prescriptionService.GetPatientPrescriptionsAsync(patientId, status == "Active");
                 return Ok(prescriptions);
             }
             catch (Exception ex)

@@ -31,6 +31,23 @@ namespace EMRWebAPI.Services
             }
         }
 
+        public async Task<IEnumerable<Prescription>> GetPatientPrescriptionsAsync(int patientId, bool? activeOnly)
+        {
+            try
+            {
+                if (activeOnly.HasValue && activeOnly.Value)
+                {
+                    return await _prescriptionRepository.GetActivePrescriptionsAsync(patientId);
+                }
+                return await _prescriptionRepository.GetByPatientIdAsync(patientId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving prescriptions for patient {patientId}");
+                throw;
+            }
+        }
+
         public async Task<IEnumerable<Prescription>> GetActivePrescriptionsAsync(int patientId)
         {
             try
@@ -148,6 +165,62 @@ namespace EMRWebAPI.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error discontinuing prescription {id}");
+                throw;
+            }
+        }
+
+        public async Task<bool> UpdatePrescriptionStatusAsync(int id, string status, string userId)
+        {
+            try
+            {
+                var prescription = await _prescriptionRepository.GetByIdAsync(id);
+                if (prescription == null)
+                {
+                    return false;
+                }
+
+                prescription.Status = status;
+                prescription.ModifiedDate = DateTime.UtcNow;
+                prescription.ModifiedBy = userId;
+
+                if (status == "Discontinued" || status == "Completed")
+                {
+                    prescription.EndDate = DateTime.UtcNow;
+                }
+
+                await _prescriptionRepository.UpdateAsync(prescription);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error updating prescription status {id}");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<object>> GetMedicationsAsync(string? search)
+        {
+            try
+            {
+                // This is a stub implementation - in a real system, this would query a medication database
+                var medications = new List<object>
+                {
+                    new { Id = 1, Name = "Aspirin", GenericName = "Acetylsalicylic acid", Strength = "325mg" },
+                    new { Id = 2, Name = "Lisinopril", GenericName = "Lisinopril", Strength = "10mg" },
+                    new { Id = 3, Name = "Metformin", GenericName = "Metformin", Strength = "500mg" }
+                };
+
+                if (!string.IsNullOrEmpty(search))
+                {
+                    return medications.Where(m =>
+                        m.ToString()!.Contains(search, StringComparison.OrdinalIgnoreCase));
+                }
+
+                return medications;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving medications");
                 throw;
             }
         }

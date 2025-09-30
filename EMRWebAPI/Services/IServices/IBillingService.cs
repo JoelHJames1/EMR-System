@@ -9,10 +9,12 @@ namespace EMRWebAPI.Services.IServices
         Task<IEnumerable<Billing>> GetAllBillingsAsync();
         Task<IEnumerable<Billing>> GetPatientBillingsAsync(int patientId);
         Task<IEnumerable<Billing>> GetUnpaidInvoicesAsync();
+        Task<IEnumerable<Billing>> GetOutstandingBalancesAsync();
         Task<Billing?> GetBillingByIdAsync(int id);
         Task<decimal> GetPatientBalanceAsync(int patientId);
         Task<Billing> CreateBillingAsync(Billing billing, string userId);
         Task<Billing> UpdateBillingAsync(int id, Billing billing, string userId);
         Task<bool> RecordPaymentAsync(int id, decimal amount, string userId);
+        Task<bool> RecordPaymentAsync(int id, decimal amount, string userId, string paymentMethod);
     }
 }

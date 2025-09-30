@@ -70,6 +70,41 @@ namespace EMRWebAPI.Services
             }
         }
 
+        public async Task<IEnumerable<Appointment>> GetAppointmentsAsync(DateTime? startDate, DateTime? endDate, int? providerId, string? status)
+        {
+            try
+            {
+                var appointments = await _appointmentRepository.GetAllAsync();
+
+                if (startDate.HasValue)
+                {
+                    appointments = appointments.Where(a => a.AppointmentDate >= startDate.Value);
+                }
+
+                if (endDate.HasValue)
+                {
+                    appointments = appointments.Where(a => a.AppointmentDate <= endDate.Value);
+                }
+
+                if (providerId.HasValue)
+                {
+                    appointments = appointments.Where(a => a.ProviderId == providerId.Value);
+                }
+
+                if (!string.IsNullOrEmpty(status))
+                {
+                    appointments = appointments.Where(a => a.Status == status);
+                }
+
+                return appointments;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving filtered appointments");
+                throw;
+            }
+        }
+
         public async Task<Appointment?> GetAppointmentByIdAsync(int id)
         {
             try
@@ -165,6 +200,31 @@ namespace EMRWebAPI.Services
                 _logger.LogError(ex, $"Error deleting appointment {id}");
                 throw;
             }
+        }
+
+        public async Task<IEnumerable<Appointment>> GetAppointmentsAsync()
+        {
+            return await GetAllAppointmentsAsync();
+        }
+
+        public async Task<IEnumerable<Appointment>> GetTodayAppointmentsAsync()
+        {
+            try
+            {
+                var today = DateTime.Today;
+                var allAppointments = await _appointmentRepository.GetAllAsync();
+                return allAppointments.Where(a => a.AppointmentDate.Date == today);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving today's appointments");
+                throw;
+            }
+        }
+
+        public async Task<bool> CancelAppointmentAsync(int id, string userId)
+        {
+            return await UpdateAppointmentStatusAsync(id, "Cancelled", userId);
         }
     }
 }

@@ -57,6 +57,31 @@ namespace EMRWebAPI.Services
             }
         }
 
+        public async Task<IEnumerable<Encounter>> GetEncountersAsync(int? patientId, string? status)
+        {
+            try
+            {
+                var encounters = await _encounterRepository.GetAllAsync();
+
+                if (patientId.HasValue)
+                {
+                    encounters = encounters.Where(e => e.PatientId == patientId.Value);
+                }
+
+                if (!string.IsNullOrEmpty(status))
+                {
+                    encounters = encounters.Where(e => e.Status == status);
+                }
+
+                return encounters;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving filtered encounters");
+                throw;
+            }
+        }
+
         public async Task<Encounter?> GetEncounterByIdAsync(int id)
         {
             try
@@ -136,6 +161,41 @@ namespace EMRWebAPI.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error updating encounter status {id}");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<Encounter>> GetEncountersAsync()
+        {
+            return await GetAllEncountersAsync();
+        }
+
+        public async Task<IEnumerable<object>> GetEncounterDiagnosesAsync(int encounterId)
+        {
+            try
+            {
+                var encounter = await _encounterRepository.GetByIdWithDetailsAsync(encounterId);
+                if (encounter == null)
+                {
+                    return new List<object>();
+                }
+
+                // Return diagnoses from the encounter
+                if (encounter.Diagnoses == null || !encounter.Diagnoses.Any())
+                {
+                    return new List<object>();
+                }
+
+                var diagnoses = encounter.Diagnoses.Select(d => new {
+                    Code = d.ICDCode,
+                    Description = d.DiagnosisDescription
+                });
+
+                return diagnoses.Cast<object>().ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving diagnoses for encounter {encounterId}");
                 throw;
             }
         }

@@ -154,5 +154,15 @@ namespace EMRWebAPI.Services
                 throw;
             }
         }
+
+        public async Task<LabResult> AddLabResultAsync(int labOrderId, LabResult labResult)
+        {
+            return await AddLabResultAsync(labOrderId, labResult, "system");
+        }
+
+        public async Task<IEnumerable<LabOrder>> GetPendingLabOrdersAsync()
+        {
+            return await GetPendingOrdersAsync();
+        }
     }
 }

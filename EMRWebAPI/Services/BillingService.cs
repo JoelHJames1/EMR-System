@@ -158,5 +158,55 @@ namespace EMRWebAPI.Services
                 throw;
             }
         }
+
+        public async Task<bool> RecordPaymentAsync(int id, decimal amount, string userId, string paymentMethod)
+        {
+            try
+            {
+                var billing = await _billingRepository.GetByIdAsync(id);
+                if (billing == null)
+                {
+                    return false;
+                }
+
+                billing.PaidAmount += amount;
+                billing.BalanceAmount = billing.TotalAmount - billing.PaidAmount;
+                billing.PaymentMethod = paymentMethod;
+                billing.ModifiedDate = DateTime.UtcNow;
+                billing.ModifiedBy = userId;
+
+                if (billing.PaidAmount >= billing.TotalAmount)
+                {
+                    billing.Status = "Paid";
+                    billing.PaymentDate = DateTime.UtcNow;
+                }
+                else
+                {
+                    billing.Status = "Partial";
+                }
+
+                await _billingRepository.UpdateAsync(billing);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error recording payment for billing {id} with method {paymentMethod}");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<Billing>> GetOutstandingBalancesAsync()
+        {
+            try
+            {
+                var allBillings = await _billingRepository.GetAllAsync();
+                return allBillings.Where(b => b.BalanceAmount > 0 && b.Status != "Paid");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving outstanding balances");
+                throw;
+            }
+        }
     }
 }

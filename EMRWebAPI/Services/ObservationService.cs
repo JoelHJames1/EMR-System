@@ -112,5 +112,71 @@ namespace EMRWebAPI.Services
                 throw;
             }
         }
+
+        public async Task<IEnumerable<Observation>> GetPatientObservationsAsync(int patientId, string? type)
+        {
+            try
+            {
+                var observations = await _observationRepository.GetByPatientIdAsync(patientId);
+                if (!string.IsNullOrEmpty(type))
+                {
+                    return observations.Where(o => o.ObservationType == type);
+                }
+                return observations;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving observations for patient {patientId} with type {type}");
+                throw;
+            }
+        }
+
+        public async Task<Observation> RecordVitalSignsAsync(object vitalSign)
+        {
+            try
+            {
+                // Convert the dynamic vital sign to an Observation
+                var observation = new Observation
+                {
+                    ObservationDateTime = DateTime.UtcNow,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedBy = "system"
+                };
+
+                return await _observationRepository.AddAsync(observation);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error recording vital signs");
+                throw;
+            }
+        }
+
+        public async Task<IEnumerable<object>> GetVitalsTrendsAsync(int patientId, int days)
+        {
+            try
+            {
+                var startDate = DateTime.UtcNow.AddDays(-days);
+                var observations = await _observationRepository.GetByPatientIdAsync(patientId);
+
+                var trends = observations
+                    .Where(o => o.ObservationDateTime >= startDate)
+                    .OrderBy(o => o.ObservationDateTime)
+                    .Select(o => new
+                    {
+                        Date = o.ObservationDateTime,
+                        Type = o.ObservationType,
+                        Value = o.ValueNumeric?.ToString() ?? o.ValueString,
+                        Unit = o.Unit
+                    });
+
+                return trends.Cast<object>().ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving vitals trends for patient {patientId}");
+                throw;
+            }
+        }
     }
 }

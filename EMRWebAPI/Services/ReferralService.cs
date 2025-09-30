@@ -111,5 +111,25 @@ namespace EMRWebAPI.Services
                 throw;
             }
         }
+
+        public async Task<IEnumerable<Referral>> GetPendingReferralsAsync(int? providerId)
+        {
+            try
+            {
+                var pendingReferrals = await _referralRepository.GetPendingReferralsAsync();
+
+                if (providerId.HasValue)
+                {
+                    return pendingReferrals.Where(r => r.ReferringProviderId == providerId.Value);
+                }
+
+                return pendingReferrals;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error retrieving pending referrals for provider {providerId}");
+                throw;
+            }
+        }
     }
 }

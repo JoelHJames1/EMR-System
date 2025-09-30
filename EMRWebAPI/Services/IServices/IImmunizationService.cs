@@ -10,6 +10,7 @@ namespace EMRWebAPI.Services.IServices
         Task<IEnumerable<Immunization>> GetImmunizationHistoryAsync(int patientId);
         Task<Immunization?> GetImmunizationByIdAsync(int id);
         Task<Immunization> CreateImmunizationAsync(Immunization immunization, string userId);
+        Task<Immunization> RecordImmunizationAsync(Immunization immunization, string userId);
         Task<Immunization> UpdateImmunizationAsync(int id, Immunization immunization, string userId);
         Task<bool> DeleteImmunizationAsync(int id);
     }

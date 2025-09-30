@@ -11,5 +11,7 @@ namespace EMRDataLayer.Repository.IRepository
         Task<IEnumerable<Patient>> SearchPatientsAsync(string searchTerm);
         Task<IEnumerable<Patient>> GetActivePatients();
         Task<bool> PatientExists(string mrn);
+        Task<IEnumerable<Patient>> GetAllWithPaginationAsync(int page, int pageSize, string? search);
+        Task<int> GetTotalCountAsync(string? search);
     }
 }

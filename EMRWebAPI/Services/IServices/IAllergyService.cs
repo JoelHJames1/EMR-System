@@ -10,7 +10,9 @@ namespace EMRWebAPI.Services.IServices
         Task<IEnumerable<Allergy>> GetActiveAllergiesAsync(int patientId);
         Task<Allergy?> GetAllergyByIdAsync(int id);
         Task<Allergy> CreateAllergyAsync(Allergy allergy, string userId);
+        Task<Allergy> AddAllergyAsync(Allergy allergy, string userId);
         Task<Allergy> UpdateAllergyAsync(int id, Allergy allergy, string userId);
         Task<bool> DeleteAllergyAsync(int id);
+        Task<bool> DeactivateAllergyAsync(int id, string userId);
     }
 }

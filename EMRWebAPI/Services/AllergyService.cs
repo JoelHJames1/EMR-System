@@ -118,5 +118,33 @@ namespace EMRWebAPI.Services
                 throw;
             }
         }
+
+        public async Task<Allergy> AddAllergyAsync(Allergy allergy, string userId)
+        {
+            return await CreateAllergyAsync(allergy, userId);
+        }
+
+        public async Task<bool> DeactivateAllergyAsync(int id, string userId)
+        {
+            try
+            {
+                var allergy = await _allergyRepository.GetByIdAsync(id);
+                if (allergy == null)
+                {
+                    return false;
+                }
+
+                allergy.IsActive = false;
+                allergy.ModifiedDate = DateTime.UtcNow;
+                allergy.ModifiedBy = userId;
+                await _allergyRepository.UpdateAsync(allergy);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deactivating allergy {id}");
+                throw;
+            }
+        }
     }
 }

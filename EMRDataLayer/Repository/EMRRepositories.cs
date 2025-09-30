@@ -41,6 +41,39 @@ namespace EMRDataLayer.Repository
         {
             return await _context.Patients.AnyAsync(p => p.Email == mrn);
         }
+
+        public async Task<IEnumerable<Patient>> GetAllWithPaginationAsync(int page, int pageSize, string? search)
+        {
+            var query = _context.Patients.Include(p => p.Address).AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(p => p.FirstName.Contains(search) ||
+                                        p.LastName.Contains(search) ||
+                                        p.Email.Contains(search));
+            }
+
+            return await query
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.LastName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
+        public async Task<int> GetTotalCountAsync(string? search)
+        {
+            var query = _context.Patients.AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(p => p.FirstName.Contains(search) ||
+                                        p.LastName.Contains(search) ||
+                                        p.Email.Contains(search));
+            }
+
+            return await query.Where(p => p.IsActive).CountAsync();
+        }
     }
 
     // Appointment Repository

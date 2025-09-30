@@ -117,5 +117,60 @@ namespace EMRWebAPI.Services
                 throw;
             }
         }
+
+        public async Task<IEnumerable<Insurance>> GetPatientInsuranceAsync(int patientId)
+        {
+            return await GetPatientInsurancesAsync(patientId);
+        }
+
+        public async Task<Insurance> AddInsuranceAsync(Insurance insurance, string userId)
+        {
+            return await CreateInsuranceAsync(insurance, userId);
+        }
+
+        public async Task<bool> VerifyInsuranceAsync(int id)
+        {
+            try
+            {
+                var insurance = await _insuranceRepository.GetByIdAsync(id);
+                if (insurance == null)
+                {
+                    return false;
+                }
+
+                insurance.IsActive = true;
+                insurance.ModifiedDate = DateTime.UtcNow;
+                await _insuranceRepository.UpdateAsync(insurance);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error verifying insurance {id}");
+                throw;
+            }
+        }
+
+        public async Task<bool> DeactivateInsuranceAsync(int id, string userId)
+        {
+            try
+            {
+                var insurance = await _insuranceRepository.GetByIdAsync(id);
+                if (insurance == null)
+                {
+                    return false;
+                }
+
+                insurance.IsActive = false;
+                insurance.ModifiedDate = DateTime.UtcNow;
+                insurance.ModifiedBy = userId;
+                await _insuranceRepository.UpdateAsync(insurance);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error deactivating insurance {id}");
+                throw;
+            }
+        }
     }
 }
